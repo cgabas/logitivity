@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://btcdv0tl4g4my"]
+
+[ext_resource type="PackedScene" uid="uid://bj333tfjki8vi" path="res://sprite/player.tscn" id="1_7ke6n"]
+[ext_resource type="Script" uid="uid://dn741isbqttio" path="res://debug/test_world.gd" id="1_p2uwl"]
+[ext_resource type="Texture2D" uid="uid://c22lu7vkpt418" path="res://icon.svg" id="2_okvyn"]
+
+[node name="test_env" type="Node2D" unique_id=1472894355]
+script = ExtResource("1_p2uwl")
+
+[node name="player" parent="." unique_id=88732332 instance=ExtResource("1_7ke6n")]
+
+[node name="Icon" type="Sprite2D" parent="." unique_id=269435546]
+position = Vector2(257, 194)
+texture = ExtResource("2_okvyn")

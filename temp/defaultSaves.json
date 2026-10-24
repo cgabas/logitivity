@@ -1,0 +1,19 @@
+{
+	"current_area": "res://world/level_1.tscn",
+	"player": {
+		"name": "",
+		"health": 100.00,
+		"maxHealth": 100.00,
+		"caster": 100,
+		"maxCaster": 100,
+		"coins": 0,
+		"diamond": 0,
+		"position": {"x": null, "y": null}
+	},
+	"inventory": [],
+	"treeOfLife": [],
+	"flags": {
+		"isTutorialDone": false,
+		"isFromHogward": false
+	}
+}

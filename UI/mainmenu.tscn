@@ -1,0 +1,262 @@
+[gd_scene format=3 uid="uid://cfvc61q7pgn2k"]
+
+[ext_resource type="FontFile" uid="uid://dp6c8w3qyoe72" path="res://UI/fonts_setting/Saltblackcombat.ttf" id="1_fuin7"]
+[ext_resource type="Texture2D" uid="uid://c4rpmhyi1ek63" path="res://UI/texture/menuBG_test.png" id="1_l3hvi"]
+[ext_resource type="Script" uid="uid://cy6ihw0w7jkpi" path="res://UI/mainmenu.gd" id="1_xgd8u"]
+[ext_resource type="Theme" uid="uid://ddxht2p0bukva" path="res://UI/fonts_setting/mainMenuConf.tres" id="2_6whui"]
+[ext_resource type="StyleBox" uid="uid://35tqvrcx130r" path="res://UI/fonts_setting/menuButton_unpressed.tres" id="3_l3hvi"]
+[ext_resource type="StyleBox" uid="uid://ly24d5cnar0c" path="res://UI/fonts_setting/menuButton_pressed.tres" id="4_xgd8u"]
+[ext_resource type="StyleBox" uid="uid://dwxhk0ldocth3" path="res://UI/fonts_setting/menuButton_hover.tres" id="5_m7qvm"]
+[ext_resource type="StyleBox" uid="uid://3jh4se5duwo4" path="res://UI/fonts_setting/menuButton_disable.tres" id="6_dt0da"]
+[ext_resource type="FontFile" uid="uid://ce1jy480h71d0" path="res://UI/fonts_setting/VCR.ttf" id="9_m7qvm"]
+[ext_resource type="Texture2D" uid="uid://c0hol07ql7gt" path="res://UI/texture/button_unpressed.png" id="10_hq757"]
+[ext_resource type="Texture2D" uid="uid://b33ys6bwq55ww" path="res://UI/texture/button_pressed.png" id="11_moo7q"]
+[ext_resource type="Texture2D" uid="uid://0x7avneiakm7" path="res://UI/texture/button_hover.png" id="12_yspb0"]
+[ext_resource type="Texture2D" uid="uid://bevaxa2i5kuch" path="res://UI/texture/button_disable.png" id="13_sv7qp"]
+
+[sub_resource type="Theme" id="Theme_awb5e"]
+default_font = ExtResource("1_fuin7")
+default_font_size = 114
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_jmcqw"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_427s3"]
+
+[sub_resource type="Theme" id="Theme_m7qvm"]
+default_font = ExtResource("9_m7qvm")
+default_font_size = 32
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_yfx53"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_m0ick"]
+
+[sub_resource type="Theme" id="Theme_yfx53"]
+default_font = ExtResource("9_m7qvm")
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_up3a7"]
+texture = ExtResource("10_hq757")
+texture_margin_top = 40.0
+texture_margin_bottom = 40.0
+expand_margin_left = 10.0
+expand_margin_top = 5.0
+expand_margin_right = 10.0
+expand_margin_bottom = 5.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_jlgm0"]
+texture = ExtResource("11_moo7q")
+texture_margin_top = 40.0
+texture_margin_bottom = 40.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_cbfhj"]
+texture = ExtResource("12_yspb0")
+texture_margin_top = 40.0
+texture_margin_bottom = 40.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_5emm8"]
+texture = ExtResource("13_sv7qp")
+texture_margin_top = 40.0
+texture_margin_bottom = 40.0
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_dxehv"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_k7hbp"]
+
+[node name="MAINMENU" type="Control" unique_id=587461423]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_xgd8u")
+
+[node name="backgroundImage" type="TextureRect" parent="." unique_id=1609360433]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("1_l3hvi")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1070560502]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Title" type="Label" parent="VBoxContainer" unique_id=1246295528]
+layout_mode = 2
+theme = SubResource("Theme_awb5e")
+text = "Logitivity"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer" unique_id=860130016]
+layout_mode = 2
+
+[node name="VSeparator" type="VSeparator" parent="VBoxContainer/HBoxContainer" unique_id=1364641026]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/separator = SubResource("StyleBoxEmpty_jmcqw")
+
+[node name="ButtonContainer" type="VBoxContainer" parent="VBoxContainer/HBoxContainer" unique_id=1909036499]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="StartNew" type="Button" parent="VBoxContainer/HBoxContainer/ButtonContainer" unique_id=1672987740]
+layout_mode = 2
+size_flags_vertical = 3
+theme = ExtResource("2_6whui")
+theme_override_styles/normal = ExtResource("3_l3hvi")
+theme_override_styles/pressed = ExtResource("4_xgd8u")
+theme_override_styles/hover = ExtResource("5_m7qvm")
+theme_override_styles/disabled = ExtResource("6_dt0da")
+text = "Start New"
+
+[node name="Continue" type="Button" parent="VBoxContainer/HBoxContainer/ButtonContainer" unique_id=1424212988]
+layout_mode = 2
+theme = ExtResource("2_6whui")
+theme_override_styles/normal = ExtResource("3_l3hvi")
+theme_override_styles/pressed = ExtResource("4_xgd8u")
+theme_override_styles/hover = ExtResource("5_m7qvm")
+theme_override_styles/disabled = ExtResource("6_dt0da")
+text = "Continue"
+
+[node name="Setting" type="Button" parent="VBoxContainer/HBoxContainer/ButtonContainer" unique_id=574216530]
+layout_mode = 2
+theme = ExtResource("2_6whui")
+theme_override_styles/normal = ExtResource("3_l3hvi")
+theme_override_styles/pressed = ExtResource("4_xgd8u")
+theme_override_styles/hover = ExtResource("5_m7qvm")
+theme_override_styles/disabled = ExtResource("6_dt0da")
+text = "Settings"
+
+[node name="Exit" type="Button" parent="VBoxContainer/HBoxContainer/ButtonContainer" unique_id=1406179190]
+layout_mode = 2
+theme = ExtResource("2_6whui")
+theme_override_styles/normal = ExtResource("3_l3hvi")
+theme_override_styles/pressed = ExtResource("4_xgd8u")
+theme_override_styles/hover = ExtResource("5_m7qvm")
+theme_override_styles/disabled = ExtResource("6_dt0da")
+text = "Exit"
+
+[node name="VSeparator2" type="VSeparator" parent="VBoxContainer/HBoxContainer" unique_id=1721475419]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/separator = SubResource("StyleBoxEmpty_427s3")
+
+[node name="Title2" type="Label" parent="VBoxContainer" unique_id=799232802]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "Made by: Abas, Ray, Syafi | Credit: Dafont-Alit Design (font), Riciery Leal (font)"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=1397311193]
+visible = false
+
+[node name="ColorRect" type="ColorRect" parent="CanvasLayer" unique_id=343048865]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6666667)
+
+[node name="StartNewConfirm" type="ConfirmationDialog" parent="CanvasLayer" unique_id=1377438363]
+oversampling_override = 1.0
+mode = 3
+title = "Wait!"
+initial_position = 1
+size = Vector2i(737, 291)
+unresizable = true
+borderless = true
+theme = SubResource("Theme_m7qvm")
+ok_button_text = "Yup!"
+dialog_text = "Wait! - You had a saved game here! Doing so will result in losing all of your hardwork. Are you sure about this? :0"
+dialog_autowrap = true
+cancel_button_text = "Never Mind"
+
+[node name="namePromptWindow" type="Window" parent="CanvasLayer" unique_id=1913375976]
+transparent_bg = true
+msaa_2d = 3
+oversampling_override = 1.0
+initial_position = 2
+size = Vector2i(512, 256)
+visible = false
+wrap_controls = true
+unresizable = true
+borderless = true
+transparent = true
+minimize_disabled = true
+maximize_disabled = true
+
+[node name="TextureRect" type="TextureRect" parent="CanvasLayer/namePromptWindow" unique_id=232313116]
+offset_right = 512.0
+offset_bottom = 256.0
+texture = ExtResource("10_hq757")
+stretch_mode = 6
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/namePromptWindow" unique_id=31386108]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VSeparator" type="VSeparator" parent="CanvasLayer/namePromptWindow/HBoxContainer" unique_id=1705019235]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/separator = SubResource("StyleBoxEmpty_yfx53")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/namePromptWindow/HBoxContainer" unique_id=980426499]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 4.0
+
+[node name="HSeparator" type="HSeparator" parent="CanvasLayer/namePromptWindow/HBoxContainer/VBoxContainer" unique_id=835818390]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/separator = SubResource("StyleBoxEmpty_m0ick")
+
+[node name="nameLabel" type="Label" parent="CanvasLayer/namePromptWindow/HBoxContainer/VBoxContainer" unique_id=642174250]
+layout_mode = 2
+theme = ExtResource("2_6whui")
+text = "Tell us your name?"
+horizontal_alignment = 1
+
+[node name="playerNameField" type="LineEdit" parent="CanvasLayer/namePromptWindow/HBoxContainer/VBoxContainer" unique_id=1407909772]
+layout_mode = 2
+
+[node name="confirmName" type="Button" parent="CanvasLayer/namePromptWindow/HBoxContainer/VBoxContainer" unique_id=2134107473]
+layout_mode = 2
+theme = SubResource("Theme_yfx53")
+theme_override_styles/normal = SubResource("StyleBoxTexture_up3a7")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_jlgm0")
+theme_override_styles/hover = SubResource("StyleBoxTexture_cbfhj")
+theme_override_styles/disabled = SubResource("StyleBoxTexture_5emm8")
+text = "Confirm"
+
+[node name="HSeparator2" type="HSeparator" parent="CanvasLayer/namePromptWindow/HBoxContainer/VBoxContainer" unique_id=1557273111]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/separator = SubResource("StyleBoxEmpty_dxehv")
+
+[node name="VSeparator2" type="VSeparator" parent="CanvasLayer/namePromptWindow/HBoxContainer" unique_id=1807386041]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/separator = SubResource("StyleBoxEmpty_k7hbp")
+
+[connection signal="pressed" from="VBoxContainer/HBoxContainer/ButtonContainer/StartNew" to="." method="_on_start_new_pressed"]
+[connection signal="pressed" from="VBoxContainer/HBoxContainer/ButtonContainer/Continue" to="." method="_on_continue_pressed"]
+[connection signal="pressed" from="VBoxContainer/HBoxContainer/ButtonContainer/Setting" to="." method="_on_setting_pressed"]
+[connection signal="pressed" from="VBoxContainer/HBoxContainer/ButtonContainer/Exit" to="." method="_on_exit_pressed"]
+[connection signal="canceled" from="CanvasLayer/StartNewConfirm" to="." method="_on_start_new_confirm_canceled"]
+[connection signal="confirmed" from="CanvasLayer/StartNewConfirm" to="." method="_on_start_new_confirm_confirmed"]
+[connection signal="pressed" from="CanvasLayer/namePromptWindow/HBoxContainer/VBoxContainer/confirmName" to="." method="playerHasEnteredName"]

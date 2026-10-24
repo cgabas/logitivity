@@ -1,0 +1,15 @@
+[gd_scene format=3 uid="uid://bslrowbaq26o6"]
+
+[ext_resource type="Script" uid="uid://jf0w61p6bcf5" path="res://world/level_1.gd" id="1_6f1wx"]
+[ext_resource type="PackedScene" uid="uid://bj333tfjki8vi" path="res://sprite/player.tscn" id="1_lis17"]
+[ext_resource type="Texture2D" uid="uid://c22lu7vkpt418" path="res://icon.svg" id="3_go4ko"]
+
+[node name="Level_1" type="Node2D" unique_id=1700818857]
+script = ExtResource("1_6f1wx")
+
+[node name="player" parent="." unique_id=88732332 instance=ExtResource("1_lis17")]
+position = Vector2(577, 323)
+
+[node name="Icon" type="Sprite2D" parent="." unique_id=1054946112]
+position = Vector2(450, 381)
+texture = ExtResource("3_go4ko")

@@ -1,0 +1,7 @@
+[gd_resource type="Theme" format=3 uid="uid://ddxht2p0bukva"]
+
+[ext_resource type="FontFile" uid="uid://ce1jy480h71d0" path="res://UI/fonts_setting/VCR.ttf" id="1_mpq2v"]
+
+[resource]
+default_font = ExtResource("1_mpq2v")
+default_font_size = 22

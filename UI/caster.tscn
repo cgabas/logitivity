@@ -1,0 +1,70 @@
+[gd_scene format=3 uid="uid://rwknst2wc7gs"]
+
+[ext_resource type="Script" uid="uid://c8qyekop8oyp5" path="res://UI/caster.gd" id="1_0y3vi"]
+[ext_resource type="LabelSettings" uid="uid://cj7xqwdbuj0t0" path="res://UI/fonts_setting/inGameFontUI_Indicator.tres" id="1_ahr1h"]
+[ext_resource type="Texture2D" uid="uid://cmj02axsptt1x" path="res://UI/icons/menu.png" id="3_0y3vi"]
+
+[node name="CASTER" type="Control" unique_id=840094416]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_0y3vi")
+
+[node name="Indicator" type="HBoxContainer" parent="." unique_id=1181035543]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -62.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="VSeparator" type="VSeparator" parent="Indicator" unique_id=915970598]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.3
+
+[node name="manaVisual" type="VBoxContainer" parent="Indicator" unique_id=1027358191]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="casterProgressBar_TEST" type="ProgressBar" parent="Indicator/manaVisual" unique_id=2126972789]
+layout_mode = 2
+
+[node name="casterLabel" type="Label" parent="Indicator/manaVisual" unique_id=176955966]
+layout_mode = 2
+text = "Mana"
+label_settings = ExtResource("1_ahr1h")
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="MenuButton" type="MenuButton" parent="Indicator" unique_id=2027624920]
+layout_mode = 2
+text = "Menu"
+icon = ExtResource("3_0y3vi")
+icon_alignment = 1
+vertical_icon_alignment = 2
+
+[node name="healthVisual" type="VBoxContainer" parent="Indicator" unique_id=1676051419]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="casterHealthProgressBar_TEST" type="ProgressBar" parent="Indicator/healthVisual" unique_id=56960793]
+layout_mode = 2
+
+[node name="healthLabel" type="Label" parent="Indicator/healthVisual" unique_id=871293347]
+layout_mode = 2
+text = "Health"
+label_settings = ExtResource("1_ahr1h")
+vertical_alignment = 1
+
+[node name="VSeparator3" type="VSeparator" parent="Indicator" unique_id=986529677]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.3
