@@ -3,6 +3,7 @@ extends CharacterBody2D
 #woi Ray & Syafi, kamu orang boleh adjust dia punya kelajuan kat sini nanti!
 const SPEED = 300.0
 var isAttacking: bool = false
+var recordLastDirection: Vector2 = Vector2.ZERO
 @onready var playerAnimationClass: AnimatedSprite2D = $playerAnimatedSprite
 
 func _ready() -> void:
@@ -41,12 +42,39 @@ func playerBehaviourFunction() -> void:
 func playerAnimationFunction(playerDirection: Vector2) -> void:
 	#NOTE: if the up/down sprite texture is avaliable, change this code later(this one is just for testing)
 	#if player vector is 0, then the game will assume that there are no movement thus playing idle animation
-	if playerDirection.x != 0 || playerDirection.y != 0:
-		playerAnimationClass.play("run")
-		#determine the direction based on the value of x inside this vector
-		if playerDirection.x > 0:
-			playerAnimationClass.flip_h = false
-		elif playerDirection.x < 0:
-			playerAnimationClass.flip_h = true
-	else:
-		playerAnimationClass.play("idle")
+	#only record when vector is not zero
+	if playerDirection != Vector2.ZERO:
+		if recordLastDirection.x == 0 || recordLastDirection.y == 0:
+			recordLastDirection = playerDirection
+		else:
+			#handle diagonal movement
+			if abs(playerDirection.x) > abs(playerDirection.y):
+				recordLastDirection = Vector2.UP
+			else:
+				recordLastDirection = Vector2.DOWN
+	
+	#handle movement direction
+	match playerDirection:
+		Vector2.UP:
+			playerAnimationClass.play("walk_up")
+		Vector2.DOWN:
+			playerAnimationClass.play("walk_down")
+		Vector2.LEFT:
+			playerAnimationClass.play("walk_left")
+		Vector2.RIGHT:
+			playerAnimationClass.play("walk_right")
+		Vector2.ZERO:
+			playerAnimationFunction_IdleHandler(recordLastDirection)
+
+func playerAnimationFunction_IdleHandler(lastDirection: Vector2) -> void:
+	match lastDirection:
+		Vector2.UP:
+			playerAnimationClass.play("idle_up")
+		Vector2.DOWN:
+			playerAnimationClass.play("idle_down")
+		Vector2.LEFT:
+			playerAnimationClass.play("idle_left")
+		Vector2.RIGHT:
+			playerAnimationClass.play("idle_right")
+		_:
+			playerAnimationClass.play("idle_down")

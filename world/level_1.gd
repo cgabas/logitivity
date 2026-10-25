@@ -1,5 +1,6 @@
 extends Node2D
 @onready var player: CharacterBody2D = $player
+@onready var playerCamera: Camera2D = $playerCamera
 
 func _ready() -> void:
 	#set initial position if saved position is 0
