@@ -10,6 +10,7 @@ extends Control
 func _ready() -> void:
 	#display word mana if player class was mage, warrior otherwise
 	casterLabel.text = "Mana" if SaveManager.data["flags"]["isFromHogward"] else "Energy"
+	#get_tree().debug_collisions_hint = true
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:

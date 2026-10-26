@@ -3,9 +3,9 @@
 [ext_resource type="Script" uid="uid://jf0w61p6bcf5" path="res://world/level_1.gd" id="1_6f1wx"]
 [ext_resource type="PackedScene" uid="uid://bj333tfjki8vi" path="res://sprite/player.tscn" id="1_lis17"]
 [ext_resource type="Texture2D" uid="uid://ixitnr2t6cfu" path="res://UI/texture/terrain.png" id="2_go4ko"]
-[ext_resource type="Script" uid="uid://dye8jcgr87nth" path="res://world/mage_orb.gd" id="4_go5pu"]
 [ext_resource type="Texture2D" uid="uid://c8kr3qchbhvi7" path="res://UI/texture/mage_orb.png" id="4_uhyhg"]
 [ext_resource type="Texture2D" uid="uid://dj1v7xrriyykb" path="res://UI/texture/warrior_orb.png" id="5_5y0yy"]
+[ext_resource type="Theme" uid="uid://ddxht2p0bukva" path="res://UI/fonts_setting/mainMenuConf.tres" id="5_dhmri"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_uhyhg"]
 texture = ExtResource("2_go4ko")
@@ -624,23 +624,30 @@ texture = ExtResource("2_go4ko")
 physics_layer_0/collision_layer = 1
 sources/0 = SubResource("TileSetAtlasSource_go4ko")
 
-[sub_resource type="Gradient" id="Gradient_4eky5"]
+[sub_resource type="Gradient" id="Gradient_dhmri"]
+offsets = PackedFloat32Array(0.22983871, 0.48790324, 0.641129, 0.6572581, 1)
+colors = PackedColorArray(0, 0, 0, 1, 0, 0, 0, 0.80011433, 0, 0, 0, 0.6484224, 0, 0, 0, 0.5220125, 0, 0, 0, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_m0ick"]
+gradient = SubResource("Gradient_dhmri")
+fill = 1
+fill_from = Vector2(0.50872093, 0.49709302)
+fill_to = Vector2(0.8459302, 0.16569768)
+
+[sub_resource type="Gradient" id="Gradient_m0ick"]
 colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
 
-[sub_resource type="GradientTexture2D" id="GradientTexture2D_5y0yy"]
-gradient = SubResource("Gradient_4eky5")
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_k7hbp"]
+gradient = SubResource("Gradient_m0ick")
 fill = 1
-fill_from = Vector2(0.502907, 0.502907)
-fill_to = Vector2(0.2122093, 0.90988374)
+fill_from = Vector2(0.49709302, 0.502907)
+fill_to = Vector2(0.18895349, 0.32848838)
 
-[sub_resource type="Gradient" id="Gradient_5y0yy"]
-colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
+[sub_resource type="CircleShape2D" id="CircleShape2D_yfx53"]
+radius = 36.0
 
-[sub_resource type="GradientTexture2D" id="GradientTexture2D_4o7g3"]
-gradient = SubResource("Gradient_5y0yy")
-fill = 1
-fill_from = Vector2(0.49709302, 0.49127907)
-fill_to = Vector2(0.8517442, 0.125)
+[sub_resource type="CircleShape2D" id="CircleShape2D_dxehv"]
+radius = 36.013885
 
 [node name="Level_1" type="Node2D" unique_id=1700818857]
 script = ExtResource("1_6f1wx")
@@ -658,33 +665,82 @@ position = Vector2(577, 323)
 
 [node name="classesPick" type="Node2D" parent="." unique_id=1321057055]
 
-[node name="warriorOrb" type="Node2D" parent="classesPick" unique_id=536600170]
-position = Vector2(630, 90)
+[node name="warriorOrb" type="Area2D" parent="classesPick" unique_id=212059450]
+position = Vector2(626, 89)
+
+[node name="shadow" type="Sprite2D" parent="classesPick/warriorOrb" unique_id=82966325]
+position = Vector2(5.02, 23.015)
+rotation = 0.5235988
+skew = 0.54454273
+texture = SubResource("GradientTexture2D_m0ick")
+
+[node name="PointLight2D" type="PointLight2D" parent="classesPick/warriorOrb" unique_id=2093181533]
+position = Vector2(-16.000002, -48)
+scale = Vector2(13.890625, 9.094971)
+energy = 0.5
+shadow_enabled = true
+shadow_filter = 1
+shadow_filter_smooth = 0.5
+texture = SubResource("GradientTexture2D_k7hbp")
+offset = Vector2(0, 30)
 
 [node name="warriorOrbSprite" type="Sprite2D" parent="classesPick/warriorOrb" unique_id=439549219]
 texture = ExtResource("5_5y0yy")
 
-[node name="PointLight2D" type="PointLight2D" parent="classesPick/warriorOrb" unique_id=1867346896]
-position = Vector2(1.6063379e-05, 8.428842e-07)
-scale = Vector2(0.9965832, 0.55523926)
-energy = 0.4
-shadow_enabled = true
-texture = SubResource("GradientTexture2D_5y0yy")
-offset = Vector2(-55.15012, 428.6441)
-texture_scale = 17.56
+[node name="CollisionShape2D" type="CollisionShape2D" parent="classesPick/warriorOrb" unique_id=665803284]
+shape = SubResource("CircleShape2D_yfx53")
 
-[node name="mageOrb" type="Node2D" parent="classesPick" unique_id=1351822502]
-position = Vector2(530, 90)
-script = ExtResource("4_go5pu")
+[node name="warriorLabel" type="Label" parent="classesPick/warriorOrb" unique_id=188708921]
+visible = false
+offset_left = -1.0
+offset_top = 38.0
+offset_right = 488.0
+offset_bottom = 150.0
+offset_transform_enabled = true
+theme = ExtResource("5_dhmri")
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+text = "A warrior is naught without
+their companion. One must needs choose
+one, and abide with it for
+all their days. Command it, and
+they shall be a true warrior."
+vertical_alignment = 1
+
+[node name="mageOrb" type="Area2D" parent="classesPick" unique_id=1919710109]
+position = Vector2(528, 89)
+
+[node name="shadow" type="Sprite2D" parent="classesPick/mageOrb" unique_id=428130292]
+position = Vector2(5.0200195, 23.015)
+rotation = 0.5235988
+skew = 0.5445427
+texture = SubResource("GradientTexture2D_m0ick")
 
 [node name="mageOrbSprite" type="Sprite2D" parent="classesPick/mageOrb" unique_id=378243688]
 texture = ExtResource("4_uhyhg")
 
-[node name="PointLight2D" type="PointLight2D" parent="classesPick/mageOrb" unique_id=2100371029]
-position = Vector2(-2.861023e-06, -3.8146973e-06)
-scale = Vector2(0.9006691, 0.5018014)
-energy = 0.4
-shadow_enabled = true
-texture = SubResource("GradientTexture2D_4o7g3")
-offset = Vector2(51.07312, 474.29126)
-texture_scale = 19.43
+[node name="CollisionShape2D" type="CollisionShape2D" parent="classesPick/mageOrb" unique_id=61990859]
+shape = SubResource("CircleShape2D_dxehv")
+
+[node name="mageLabel" type="Label" parent="classesPick/mageOrb" unique_id=1429333000]
+visible = false
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -488.0
+offset_top = 40.0
+offset_right = 2.0
+offset_bottom = 106.0
+grow_horizontal = 0
+offset_transform_enabled = true
+theme = ExtResource("5_dhmri")
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+text = "To be a mage, one must think to spell.
+With this orb, they shall be anoint
+with the elixir of magic."
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[connection signal="area_entered" from="classesPick/warriorOrb" to="." method="_on_warrior_orb_area_entered"]
+[connection signal="area_exited" from="classesPick/warriorOrb" to="." method="_on_warrior_orb_area_exited"]
+[connection signal="area_entered" from="classesPick/mageOrb" to="." method="_on_mage_orb_area_entered"]
+[connection signal="area_exited" from="classesPick/mageOrb" to="." method="_on_mage_orb_area_exited"]

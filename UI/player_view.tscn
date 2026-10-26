@@ -1,8 +1,11 @@
 [gd_scene format=3 uid="uid://cgmem7xgwo2u7"]
 
 [ext_resource type="PackedScene" uid="uid://rwknst2wc7gs" path="res://UI/caster.tscn" id="1_g32cd"]
+[ext_resource type="PackedScene" uid="uid://d4e0nhwy63l31" path="res://UI/mobile_control.tscn" id="2_g32cd"]
 
 [node name="playerView" type="CanvasLayer" unique_id=1485605930]
 layer = 2
+
+[node name="MobileControl" parent="." unique_id=1835129452 instance=ExtResource("2_g32cd")]
 
 [node name="CASTER" parent="." unique_id=840094416 instance=ExtResource("1_g32cd")]

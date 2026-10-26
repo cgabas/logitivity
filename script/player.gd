@@ -5,6 +5,7 @@ const SPEED = 300.0
 var isAttacking: bool = false
 var recordLastDirection: Vector2 = Vector2.ZERO
 @onready var playerAnimationClass: AnimatedSprite2D = $playerAnimatedSprite
+@onready var playerRangeShape: CollisionShape2D = $playerRange/range
 
 func _ready() -> void:
 	pass
@@ -42,27 +43,37 @@ func playerBehaviourFunction() -> void:
 func playerAnimationFunction(playerDirection: Vector2) -> void:
 	#NOTE: if the up/down sprite texture is avaliable, change this code later(this one is just for testing)
 	#if player vector is 0, then the game will assume that there are no movement thus playing idle animation
-	#only record when vector is not zero
-	if playerDirection != Vector2.ZERO:
-		if recordLastDirection.x == 0 || recordLastDirection.y == 0:
-			recordLastDirection = playerDirection
-		else:
-			#handle diagonal movement
-			if abs(playerDirection.x) > abs(playerDirection.y):
-				recordLastDirection = Vector2.UP
-			else:
-				recordLastDirection = Vector2.DOWN
+	#if the joystick is released (Vector2.ZERO), play idle and exit early
+	if playerDirection == Vector2.ZERO:
+		playerAnimationFunction_IdleHandler(recordLastDirection)
+		return
 	
-	#handle movement direction
-	match playerDirection:
+	#always snap the joystick's decimal vector into a clean 4-way cardinal vector
+	if abs(playerDirection.x) > abs(playerDirection.y):
+		if playerDirection.x > 0:
+			recordLastDirection = Vector2.RIGHT
+		else:
+			recordLastDirection = Vector2.LEFT
+	else:
+		if playerDirection.y > 0:
+			recordLastDirection = Vector2.DOWN
+		else:
+			recordLastDirection = Vector2.UP
+	
+	# match the snapped 'recordLastDirection'
+	match recordLastDirection:
 		Vector2.UP:
 			playerAnimationClass.play("walk_up")
+			playerRangeShape.position = Vector2(0, -13)
 		Vector2.DOWN:
 			playerAnimationClass.play("walk_down")
+			playerRangeShape.position = Vector2(0, 13)
 		Vector2.LEFT:
 			playerAnimationClass.play("walk_left")
+			playerRangeShape.position = Vector2(-13, 5)
 		Vector2.RIGHT:
 			playerAnimationClass.play("walk_right")
+			playerRangeShape.position = Vector2(13, 5)
 		Vector2.ZERO:
 			playerAnimationFunction_IdleHandler(recordLastDirection)
 

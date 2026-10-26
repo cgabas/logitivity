@@ -26,8 +26,8 @@ func _ready() -> void:
 #======================================
 #            PROCESS
 #======================================
-func _process(delta: float) -> void:
-	pass
+#func _process(delta: float) -> void:
+	#pass
 
 #control which popup to appear
 func popupControl(visibility: bool, which: int = 0) -> void:

@@ -118,9 +118,9 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_fatq2")
 }],
-"loop": 2,
+"loop": 1,
 "name": &"idle_down",
-"speed": 5.0
+"speed": 2.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -143,7 +143,7 @@ animations = [{
 }],
 "loop": 1,
 "name": &"idle_left",
-"speed": 5.0
+"speed": 2.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -166,7 +166,7 @@ animations = [{
 }],
 "loop": 1,
 "name": &"idle_right",
-"speed": 5.0
+"speed": 2.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -174,7 +174,7 @@ animations = [{
 }],
 "loop": 1,
 "name": &"idle_up",
-"speed": 5.0
+"speed": 2.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -281,8 +281,8 @@ animations = [{
 "speed": 5.0
 }]
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_yfx53"]
-radius = 25.04496
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_cbh7h"]
+size = Vector2(14, 14)
 
 [node name="player" type="CharacterBody2D" unique_id=88732332]
 scale = Vector2(4, 4)
@@ -297,7 +297,7 @@ texture_filter = 1
 scale = Vector2(0.5, 0.5)
 sprite_frames = SubResource("SpriteFrames_yfx53")
 animation = &"idle_down"
-frame_progress = 0.013612388
+frame_progress = 0.3233193
 
 [node name="playerCamera" type="Camera2D" parent="." unique_id=732037928]
 position_smoothing_enabled = true
@@ -312,5 +312,5 @@ polygon = PackedVector2Array(-13.701363, 2.2810478, -7.2013626, 9.531048, -0.701
 [node name="playerRange" type="Area2D" parent="." unique_id=238865673]
 
 [node name="range" type="CollisionShape2D" parent="playerRange" unique_id=700031804]
-visible = false
-shape = SubResource("CircleShape2D_yfx53")
+position = Vector2(0, 13)
+shape = SubResource("RectangleShape2D_cbh7h")
