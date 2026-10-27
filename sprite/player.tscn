@@ -12,12 +12,24 @@ font_size = 18
 outline_size = 3
 outline_color = Color(0, 0, 0, 1)
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_cbh7h"]
+size = Vector2(14, 14)
+
+[sub_resource type="Gradient" id="Gradient_senxl"]
+offsets = PackedFloat32Array(0.40725806, 1)
+colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_yfx53"]
+gradient = SubResource("Gradient_senxl")
+width = 128
+height = 128
+fill = 1
+fill_from = Vector2(0.502907, 0.49709302)
+fill_to = Vector2(0.8517442, 0.13081396)
+
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_senxl"]
 cull_mode = 1
 polygon = PackedVector2Array(-4, 14, -3, 14, -3, 15, -1, 15, -1, 14, 1, 14, 1, 15, 3, 15, 3, 14, 4, 14, 4, 13, -4, 13)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_cbh7h"]
-size = Vector2(14, 14)
 
 [node name="player" type="CharacterBody2D" unique_id=88732332]
 texture_filter = 1
@@ -26,8 +38,9 @@ motion_mode = 1
 script = ExtResource("1_fatq2")
 
 [node name="hint" type="Sprite2D" parent="." unique_id=1382061829]
-visible = false
-position = Vector2(5, -17)
+light_mask = 513
+visibility_layer = 513
+position = Vector2(-15, 5)
 scale = Vector2(0.2, 0.2)
 texture = ExtResource("6_ctshl")
 
@@ -39,15 +52,12 @@ offset_bottom = 14.250001
 text = "Press  E"
 label_settings = SubResource("LabelSettings_k7hbp")
 
-[node name="playerShadow" type="LightOccluder2D" parent="." unique_id=741728957]
-occluder = SubResource("OccluderPolygon2D_senxl")
-
 [node name="playerAnimatedSprite" type="AnimatedSprite2D" parent="." unique_id=24652178]
 texture_filter = 1
 scale = Vector2(0.5, 0.5)
 sprite_frames = ExtResource("4_senxl")
 animation = &"walk_right"
-frame_progress = 0.88614553
+frame_progress = 0.7494197
 
 [node name="playerCamera" type="Camera2D" parent="." unique_id=732037928]
 position_smoothing_enabled = true
@@ -64,3 +74,10 @@ polygon = PackedVector2Array(-13.701363, 2.2810478, -7.2013626, 9.531048, -0.701
 [node name="range" type="CollisionShape2D" parent="playerRange" unique_id=700031804]
 position = Vector2(0, 13)
 shape = SubResource("RectangleShape2D_cbh7h")
+
+[node name="playerLight" type="PointLight2D" parent="." unique_id=1031905726]
+visible = false
+texture = SubResource("GradientTexture2D_yfx53")
+
+[node name="playerShadow" type="LightOccluder2D" parent="." unique_id=741728957]
+occluder = SubResource("OccluderPolygon2D_senxl")

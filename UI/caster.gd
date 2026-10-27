@@ -8,8 +8,12 @@ extends Control
 
 #MAKE THIS CASTER FOLLOWS THE CAMERA OR THE PLAYER INSTEAD
 func _ready() -> void:
-	#display word mana if player class was mage, warrior otherwise
-	casterLabel.text = "Mana" if SaveManager.data["flags"]["isFromHogward"] else "Energy"
+	var classType = SaveManager.data["flags"]["isFromHogward"]
+	#display word mana if player class was mage, warrior otherwise (Unknown if classless)
+	if classType != null:
+		casterLabel.text = "Mana" if SaveManager.data["flags"]["isFromHogward"] else "Energy"
+	else:
+		casterLabel.text = "Unknown"
 	#get_tree().debug_collisions_hint = true
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
