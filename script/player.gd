@@ -1,32 +1,54 @@
 extends CharacterBody2D
 
 #woi Ray & Syafi, kamu orang boleh adjust dia punya kelajuan kat sini nanti!
-const SPEED = 300.0
+const SPEED: float = 300.0
+const FRAME_UNCLASS = preload("res://sprite/unclass.tres")
+const FRAME_MAGE = preload("res://sprite/mage_class.tres")
+const FRAME_WARRIOR = preload("res://sprite/warrior_class.tres")
+
 var isAttacking: bool = false
-var recordLastDirection: Vector2 = Vector2.ZERO
+var recordLastDirection: Vector2 = Vector2.DOWN
+var itemsInTouch: int = 0
+var currItem: Area2D = null
+
 @onready var playerAnimationClass: AnimatedSprite2D = $playerAnimatedSprite
+@onready var playerRange: Area2D = $playerRange
 @onready var playerRangeShape: CollisionShape2D = $playerRange/range
+@onready var hint: Sprite2D = $hint
+@onready var labelHint: Label = $hint/Label
 
 func _ready() -> void:
-	pass
+	hint.visible = false
+	#connect area detection from orbs area2d
+	playerRange.area_entered.connect(playerRange_Entered)
+	playerRange.area_exited.connect(playerRange_Exited)
+	
+	#switch class outfit based on class
+	if SaveManager.data["flags"]["isFromHogward"] != null:
+		if SaveManager.data["flags"]["isFromHogward"]:
+			playerAnimationClass.sprite_frames = FRAME_MAGE
+		else:
+			playerAnimationClass.sprite_frames = FRAME_WARRIOR
+	else:
+		playerAnimationClass.sprite_frames = FRAME_UNCLASS
 
-#main function for this sprite
 func _physics_process(_delta: float) -> void:
+	#only update hint label text when the hint is actually visible on screen
+	if hint.visible:
+		labelHint.text = "Press  E" if GlobalInputDetection.inputType() == 0 else "Press  A"
+		
 	playerMovementFunction()
 	move_and_slide()
 
 #-----------------------------------------------
 #              PLAYER MOVEMENT
 #-----------------------------------------------
-#process player's movement
 func playerMovementFunction() -> void:
-	#peform player behaviour
 	if Input.is_action_just_pressed("player_do"):
 		playerBehaviourFunction()
-		#peform player movement
+		
 	var direction := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	velocity = direction * SPEED
-	#pass direction(which contain vector2D) and call this function to 
 	playerAnimationFunction(direction)
 
 #-----------------------------------------------
@@ -36,46 +58,55 @@ func playerBehaviourFunction() -> void:
 	pass
 
 #-----------------------------------------------
+#               ITEM DETECTION
+#-----------------------------------------------
+func playerRange_Entered(area: Area2D) -> void:
+	if area.is_in_group("Items"):
+		itemsInTouch += 1
+		currItem = area
+		hint.visible = true
+
+func playerRange_Exited(area: Area2D) -> void:
+	if area.is_in_group("Items"):
+		itemsInTouch -= 1
+		if itemsInTouch <= 0:
+			itemsInTouch = 0
+			currItem = null
+			hint.visible = false
+
+#-----------------------------------------------
 #              PLAYER ANIMATION
 #-----------------------------------------------
-#to peform sprite animation based on user behaviour
-#take vector 2d as argument
 func playerAnimationFunction(playerDirection: Vector2) -> void:
-	#NOTE: if the up/down sprite texture is avaliable, change this code later(this one is just for testing)
-	#if player vector is 0, then the game will assume that there are no movement thus playing idle animation
-	#if the joystick is released (Vector2.ZERO), play idle and exit early
+	#1.if not moving, play the idle animation for the last facing direction and exit
 	if playerDirection == Vector2.ZERO:
 		playerAnimationFunction_IdleHandler(recordLastDirection)
 		return
 	
-	#always snap the joystick's decimal vector into a clean 4-way cardinal vector
+	#2.snap analog joystick/diagonal vectors into a clean 4-way cardinal direction
 	if abs(playerDirection.x) > abs(playerDirection.y):
-		if playerDirection.x > 0:
-			recordLastDirection = Vector2.RIGHT
-		else:
-			recordLastDirection = Vector2.LEFT
+		recordLastDirection = Vector2.RIGHT if playerDirection.x > 0 else Vector2.LEFT
 	else:
-		if playerDirection.y > 0:
-			recordLastDirection = Vector2.DOWN
-		else:
-			recordLastDirection = Vector2.UP
+		recordLastDirection = Vector2.DOWN if playerDirection.y > 0 else Vector2.UP
 	
-	# match the snapped 'recordLastDirection'
+	#3.play walk animation and update hitbox/hint offsets based on facing direction
 	match recordLastDirection:
 		Vector2.UP:
 			playerAnimationClass.play("walk_up")
 			playerRangeShape.position = Vector2(0, -13)
+			hint.position = Vector2(5, 22)
 		Vector2.DOWN:
 			playerAnimationClass.play("walk_down")
 			playerRangeShape.position = Vector2(0, 13)
+			hint.position = Vector2(-57.5, -105)
 		Vector2.LEFT:
 			playerAnimationClass.play("walk_left")
 			playerRangeShape.position = Vector2(-13, 5)
+			hint.position = Vector2(25, 5)
 		Vector2.RIGHT:
 			playerAnimationClass.play("walk_right")
 			playerRangeShape.position = Vector2(13, 5)
-		Vector2.ZERO:
-			playerAnimationFunction_IdleHandler(recordLastDirection)
+			hint.position = Vector2(5, -17)
 
 func playerAnimationFunction_IdleHandler(lastDirection: Vector2) -> void:
 	match lastDirection:

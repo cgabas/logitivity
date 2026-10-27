@@ -1,71 +1,117 @@
 extends Node2D
+
 @onready var player: CharacterBody2D = $player
-#collision nodes for the orbs (not including self which is this mageOrb where this script is attached to)
-@onready var warriorOrb: Area2D = $"classesPick/warriorOrb"
+
+#orb nodes & labels
+@onready var warriorOrb: Area2D = $classesPick/warriorOrb
 @onready var mageOrb: Area2D = $classesPick/mageOrb
-@onready var playerRange: Area2D = $playerRange
-#labels on the orbs
 @onready var warriorLabel: Label = $classesPick/warriorOrb/warriorLabel
 @onready var mageLabel: Label = $classesPick/mageOrb/mageLabel
 
-#true for mage, false for warrior
-var selectClassType: bool
+#confirmation UI nodes
+@onready var classConfirmCanv: CanvasLayer = $ClassConfirmCanv
+@onready var classConfirmBG: TextureRect = $ClassConfirmCanv/ClassConfirmBG
+@onready var classConfirmWindow: Window = $ClassConfirmCanv/ClassConfirmWindow
+@onready var windowContentMsgMage: Label = $ClassConfirmCanv/ClassConfirmWindow/VBoxContainer/CenterContainer/WindowContentMsg2
+@onready var windowContentMsgWarrior: Label = $ClassConfirmCanv/ClassConfirmWindow/VBoxContainer/CenterContainer/WindowContentMsg
+
+#true = Mage, false = Warrior, null = None selected
+var selectClassType: Variant = null
 
 func _ready() -> void:
-	#set initial position if saved position is 0
-	if SaveManager.data["player"]["position"]["x"] == null && SaveManager.data["player"]["position"]["y"] == null:
-		player.position.x = get_viewport().get_visible_rect().size.x / 2
-		player.position.y = get_viewport().get_visible_rect().size.y / 2
-	else:
-		player.position.x = SaveManager.data["player"]["position"]["x"]
-		player.position.y = SaveManager.data["player"]["position"]["y"]
+	#1.register orbs into the "Items" group
+	warriorOrb.add_to_group("Items")
+	mageOrb.add_to_group("Items")
 	
-	#initiate orbs animations
+	#2.hide labels and popup at startup
+	warriorLabel.visible = false
+	mageLabel.visible = false
+	showConfirmationPopup(false)
+	
+	#3.load saved player position (or center player on screen if no save exists)
+	var saved_pos: Dictionary = SaveManager.data["player"]["position"]
+	if saved_pos["x"] == null or saved_pos["y"] == null:
+		player.position = get_viewport_rect().size / 2.0
+	else:
+		player.position = Vector2(saved_pos["x"], saved_pos["y"])
+	
+	#4.start floating orb animations
 	orbMovingPattern()
 
-func _process(delta: float) -> void:
-	if Input.is_anything_pressed():
+func _physics_process(_delta: float) -> void:
+	#open confirmation popup when pressing interact ("player_do") near an orb
+	if Input.is_action_just_pressed("player_do") and selectClassType != null:
+		windowContentMsgMage.visible = (selectClassType == true)
+		windowContentMsgWarrior.visible = (selectClassType == false)
+		showConfirmationPopup(true)
+
+func _process(_delta: float) -> void:
+	#track player position in SaveManager while moving
+	if player.velocity != Vector2.ZERO:
 		SaveManager.data["player"]["position"]["x"] = player.position.x
 		SaveManager.data["player"]["position"]["y"] = player.position.y
 
 #========================================
 #               FUNCTIONS
 #========================================
+func showConfirmationPopup(isShow: bool) -> void:
+	classConfirmCanv.visible = isShow
+	classConfirmBG.visible = isShow
+	classConfirmWindow.visible = isShow
+
 func orbMovingPattern() -> void:
-	position = Vector2(530.00, 90.00)
-	warriorOrb.position = Vector2(630.00, 90.00)
-	var startPos_MAGE := position
+	mageOrb.position = Vector2(530.0, 90.0)
+	warriorOrb.position = Vector2(630.0, 90.0)
+	
+	var startPos_MAGE := mageOrb.position
 	var startPos_WARRIOR := warriorOrb.position
 	
-	#loop tween that locked with godot physics process
-	var tween_1 := create_tween().set_loops()
-	var tween_2 := create_tween().set_loops()
-	tween_1.set_process_mode(Tween.TWEEN_PROCESS_PHYSICS)
-	tween_2.set_process_mode(Tween.TWEEN_PROCESS_PHYSICS)
+	#loop tweens synced to physics frames
+	var tween_mage := create_tween().set_loops().set_process_mode(Tween.TWEEN_PROCESS_PHYSICS)
+	var tween_warrior := create_tween().set_loops().set_process_mode(Tween.TWEEN_PROCESS_PHYSICS)
 	
-	#floating animation
-	#mage
-	tween_1.tween_property(mageOrb, "position", startPos_MAGE + Vector2(0, -20), 3)
-	tween_1.tween_property(mageOrb, "position", startPos_MAGE, 1.5)
-	#warrior
-	tween_2.tween_property(warriorOrb, "position", startPos_WARRIOR + Vector2(0, -20), 2.5)
-	tween_2.tween_property(warriorOrb, "position", startPos_WARRIOR, 1.5)
+	#mage floating animation
+	tween_mage.tween_property(mageOrb, "position", startPos_MAGE + Vector2(0, -20), 3.0)
+	tween_mage.tween_property(mageOrb, "position", startPos_MAGE, 1.5)
+	
+	#warrior floating animation
+	tween_warrior.tween_property(warriorOrb, "position", startPos_WARRIOR + Vector2(0, -20), 2.5)
+	tween_warrior.tween_property(warriorOrb, "position", startPos_WARRIOR, 1.5)
 
 #========================================
-#              CONTROLS
+#               CONTROLS
 #========================================
-#only display the label below the orbs when player entered these orbs Area2D
-
-#TODO: Add class selection for player class
 func _on_warrior_orb_area_entered(area: Area2D) -> void:
 	if area.name == "playerRange":
 		warriorLabel.visible = true
+		selectClassType = false # false = Warrior
+
 func _on_warrior_orb_area_exited(area: Area2D) -> void:
 	if area.name == "playerRange":
 		warriorLabel.visible = false
+		if selectClassType == false:
+			selectClassType = null
+
 func _on_mage_orb_area_entered(area: Area2D) -> void:
 	if area.name == "playerRange":
 		mageLabel.visible = true
+		selectClassType = true # true = Mage
+
 func _on_mage_orb_area_exited(area: Area2D) -> void:
 	if area.name == "playerRange":
 		mageLabel.visible = false
+		if selectClassType == true:
+			selectClassType = null
+
+#========================================
+#          CONFIRMATION POPUP
+#========================================
+func _on_confirm_pressed() -> void:
+	SaveManager.data["flags"]["isFromHogward"] = selectClassType
+	SaveManager.saveGame()
+	#reload so that the character for player appears
+	get_tree().reload_current_scene()
+	showConfirmationPopup(false)
+
+func _on_cancel_pressed() -> void:
+	showConfirmationPopup(false)

@@ -1,110 +1,103 @@
 extends Control
 
+#buttons
 @onready var startNewBtn: Button = $VBoxContainer/HBoxContainer/ButtonContainer/StartNew
 @onready var continueBtn: Button = $VBoxContainer/HBoxContainer/ButtonContainer/Continue
 @onready var settingBtn: Button = $VBoxContainer/HBoxContainer/ButtonContainer/Setting
 @onready var exitBtn: Button = $VBoxContainer/HBoxContainer/ButtonContainer/Exit
-@onready var startNewConfirm: ConfirmationDialog = $CanvasLayer/StartNewConfirm
-@onready var playerNameField: LineEdit = $CanvasLayer/namePromptWindow/HBoxContainer/VBoxContainer/playerNameField
-@onready var namePromptWindow: Window = $CanvasLayer/namePromptWindow
+
+#popups & UI
 @onready var canvasLayer: CanvasLayer = $CanvasLayer
 @onready var colorRect: ColorRect = $CanvasLayer/ColorRect
+@onready var startNewConfirm: ConfirmationDialog = $CanvasLayer/StartNewConfirm
+@onready var namePromptWindow: Window = $CanvasLayer/namePromptWindow
+@onready var playerNameField: LineEdit = $CanvasLayer/namePromptWindow/HBoxContainer/VBoxContainer/playerNameField
 
-#access the max health and stats inside the JSON file
-var confirm_startNew := false
+enum PopupType { NONE, CONFIRM_OVERWRITE, NAME_PROMPT }
 
 #======================================
 #          INITIAL FUNCTION
 #======================================
 func _ready() -> void:
-	#gray the continue button if the player never play this game before
-	#and allow player to start new without confirmation popup
-	if !SaveManager.hasSaveFile():
-		continueBtn.disabled = true
-		confirm_startNew = true
+	#hide all popups on startup
+	popupControl(false)
+	
+	#disable Continue button if no save file exists
+	continueBtn.disabled = not SaveManager.hasSaveFile()
 
 #======================================
-#            PROCESS
+#             FUNCTIONS
 #======================================
-#func _process(delta: float) -> void:
-	#pass
-
-#control which popup to appear
-func popupControl(visibility: bool, which: int = 0) -> void:
+func popupControl(visibility: bool, which: PopupType = PopupType.NONE) -> void:
 	canvasLayer.visible = visibility
 	colorRect.visible = visibility
-	match which:
-		1: startNewConfirm.visible = visibility
-		2: namePromptWindow.visible = visibility
-		_:
-			namePromptWindow.visible = visibility
-			startNewConfirm.visible = visibility
+	
+	#always hide both windows first to prevent overlap
+	startNewConfirm.visible = false
+	namePromptWindow.visible = false
+	
+	if visibility:
+		match which:
+			PopupType.CONFIRM_OVERWRITE:
+				startNewConfirm.visible = true
+			PopupType.NAME_PROMPT:
+				namePromptWindow.visible = true
+				playerNameField.clear()
+				playerNameField.grab_focus() # Automatically focuses the text box for typing
 
 func startGame() -> void:
-	#confirmation on user action (if they had save data)
+	#ask for confirmation if the player already has save data
 	if SaveManager.hasSaveFile():
-		popupControl(true, 1)
+		popupControl(true, PopupType.CONFIRM_OVERWRITE)
 	else:
-		#create a new user data and overrides the previous one (if any)
 		SaveManager.startNew()
-		#request user name
-		popupControl(true, 2)
-		#direct user to the first scene for them to do a tutorial
-		var firstScene: String = SaveManager.data.get("current_area", "res://world/level_1.tscn")
-		get_tree().change_scene_to_file(firstScene)
+		popupControl(true, PopupType.NAME_PROMPT)
 
 #======================================
 #              BUTTONS
 #======================================
-
-#start new
 func _on_start_new_pressed() -> void:
 	startGame()
 
-#continue
 func _on_continue_pressed() -> void:
 	SaveManager.loadGame()
-	var currentScene: String = SaveManager.data.get("current_area")
+	var currentScene: String = SaveManager.data.get("current_area", "res://world/level_1.tscn")
 	get_tree().change_scene_to_file(currentScene)
 
-#setting
+# Setting - SOON TO BE ADDED
 func _on_setting_pressed() -> void:
-	pass # Replace with function body.
+	pass
 
-#exit
-#save game first and then quit
 func _on_exit_pressed() -> void:
-	SaveManager.saveGame()
 	get_tree().quit()
 
-#create new game, call a func to create a new game
+#======================================
+#           POPUP SIGNALS
+#======================================
 func _on_start_new_confirm_confirmed() -> void:
-	#check the file first and verify its directory before deletion
 	if SaveManager.hasSaveFile():
-		var dir = DirAccess.open(SaveManager.USER_SAVE_PATH.get_base_dir())
-		if dir:
-			var deletionMsg = dir.remove(SaveManager.USER_SAVE_PATH.get_file())
-			if deletionMsg == OK:
-				print("[SYSTEM] User file deleted!")
-			else:
-				print("[SYSTEM] Failed to delete file -> ", deletionMsg)
+		var err := DirAccess.remove_absolute(SaveManager.USER_SAVE_PATH)
+		if err == OK:
+			print("[SYSTEM] User save file deleted!")
 		else:
-			print("[SYSTEM] Failed to access the directory")
-	else:
-		print("[SYSTEM] User file does not exist!")
-	#close popup
-	popupControl(false)
-	#restart the mainmenu
-	get_tree().reload_current_scene()
-#close popup
+			print("[SYSTEM] Failed to delete save file -> Error code: ", err)
+	
+	#disable Continue button, initialize fresh data, and jump straight to Name Prompt
+	continueBtn.disabled = true
+	SaveManager.startNew()
+	popupControl(true, PopupType.NAME_PROMPT)
+
 func _on_start_new_confirm_canceled() -> void:
 	popupControl(false)
 
-#confirm name
 func playerHasEnteredName() -> void:
-	#take the string from the input field (playerNameField)
-	if playerNameField.text is String && not "":
-		SaveManager.data["player"]["name"] = playerNameField.text
+	#strip leading/trailing spaces and verify the name is not blank
+	var clean_name := playerNameField.text.strip_edges()
+	
+	if not clean_name.is_empty():
+		SaveManager.data["player"]["name"] = clean_name
 		SaveManager.saveGame()
-		#hide the window
 		popupControl(false)
+		
+		var firstScene: String = SaveManager.data.get("current_area", "res://world/level_1.tscn")
+		get_tree().change_scene_to_file(firstScene)

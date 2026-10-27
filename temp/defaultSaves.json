@@ -14,6 +14,6 @@
 	"treeOfLife": [],
 	"flags": {
 		"isTutorialDone": false,
-		"isFromHogward": false
+		"isFromHogward": null
 	}
 }

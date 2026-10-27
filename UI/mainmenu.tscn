@@ -177,6 +177,7 @@ initial_position = 1
 size = Vector2i(737, 291)
 unresizable = true
 borderless = true
+hdr_output_requested = true
 theme = SubResource("Theme_m7qvm")
 ok_button_text = "Yup!"
 dialog_text = "Wait! - You had a saved game here! Doing so will result in losing all of your hardwork. Are you sure about this? :0"
@@ -196,6 +197,7 @@ borderless = true
 transparent = true
 minimize_disabled = true
 maximize_disabled = true
+hdr_output_requested = true
 
 [node name="TextureRect" type="TextureRect" parent="CanvasLayer/namePromptWindow" unique_id=232313116]
 offset_right = 512.0

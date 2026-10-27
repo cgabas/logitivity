@@ -1,5 +1,19 @@
 [gd_scene format=3 uid="uid://d4e0nhwy63l31"]
 
+[ext_resource type="Texture2D" uid="uid://b3m4un2d2sgcx" path="res://UI/texture/hint_box.png" id="1_6k6im"]
+[ext_resource type="Script" uid="uid://cqel5gbmdvgg3" path="res://UI/canvas_layer.gd" id="1_7nup5"]
+[ext_resource type="Texture2D" uid="uid://q4ei6r1fs4et" path="res://UI/texture/hint_box_pressed.png" id="2_7nup5"]
+[ext_resource type="FontFile" uid="uid://ce1jy480h71d0" path="res://UI/fonts_setting/VCR.ttf" id="3_8372e"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_yfx53"]
+size = Vector2(47, 47)
+
+[sub_resource type="LabelSettings" id="LabelSettings_yfx53"]
+font = ExtResource("3_8372e")
+font_size = 64
+outline_size = 10
+outline_color = Color(0, 0, 0, 1)
+
 [node name="MobileControl" type="Control" unique_id=1835129452]
 layout_mode = 3
 anchors_preset = 15
@@ -21,18 +35,41 @@ action_right = &"move_right"
 action_up = &"move_up"
 action_down = &"move_down"
 
-[node name="buttonA" type="Button" parent="." unique_id=1015256714]
-layout_mode = 0
-offset_left = 960.0
-offset_top = 360.0
-offset_right = 1095.0
-offset_bottom = 478.3754
-text = "A"
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=1628069855]
+script = ExtResource("1_7nup5")
 
-[node name="buttonB" type="Button" parent="." unique_id=1352583369]
-layout_mode = 0
-offset_left = 797.0
-offset_top = 488.0
-offset_right = 932.0
-offset_bottom = 606.37537
+[node name="buttonA" type="TouchScreenButton" parent="CanvasLayer" unique_id=329804260]
+texture_filter = 1
+position = Vector2(909, 331.00003)
+scale = Vector2(2.796875, 2.796875)
+texture_normal = ExtResource("1_6k6im")
+texture_pressed = ExtResource("2_7nup5")
+shape = SubResource("RectangleShape2D_yfx53")
+action = "player_do"
+
+[node name="buttonB" type="TouchScreenButton" parent="CanvasLayer" unique_id=1363294288]
+texture_filter = 1
+position = Vector2(714.00006, 448.00003)
+scale = Vector2(2.796875, 2.796875)
+texture_normal = ExtResource("1_6k6im")
+texture_pressed = ExtResource("2_7nup5")
+shape = SubResource("RectangleShape2D_yfx53")
+action = "player_attack"
+
+[node name="Label" type="Label" parent="CanvasLayer" unique_id=1285246014]
+texture_filter = 1
+offset_left = 786.0
+offset_top = 505.99994
+offset_right = 835.0
+offset_bottom = 578.99994
 text = "B"
+label_settings = SubResource("LabelSettings_yfx53")
+
+[node name="Label2" type="Label" parent="CanvasLayer" unique_id=986830491]
+texture_filter = 1
+offset_left = 980.0
+offset_top = 387.0
+offset_right = 1018.0
+offset_bottom = 444.0
+text = "A"
+label_settings = SubResource("LabelSettings_yfx53")
