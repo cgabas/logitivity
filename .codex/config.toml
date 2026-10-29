@@ -1,0 +1,12 @@
+sandbox_mode = "workspace-write"
+[mcp_servers.godot]
+command = "npx"
+args = [
+  "-y",
+  "@shin2344234/godot-mcp@0.1.2",
+  "--project",
+  "C:\\Users\\barna\\OneDrive\\Documents\\prototype_cikai_2"
+]
+
+[sandbox_workspace_write]
+network_access = true

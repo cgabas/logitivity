@@ -2,7 +2,7 @@ extends CharacterBody2D
 
 const SPEED: float = 180.0
 const KNOCKBACK_FORCE: float = 250.0
-const ATTACK_RANGE: float = 40.0 #distance where goblin stops walking and hits the player
+const ATTACK_RANGE: float = 80.0 #scaled collision shapes prevent the goblin getting closer than this
 const ATTACK_DAMAGE: int = 15
 const ATTACK_COOLDOWN: float = 1.0
 
@@ -21,6 +21,7 @@ var attack_timer: float = 0.0
 
 func _ready() -> void:
 	add_to_group("Enemies")
+	add_to_group("enemies")
 	enemyHealthBar.max_value = health
 	enemyHealthBar.value = health
 	enemyTutorialSprite.play("idle")
@@ -117,6 +118,12 @@ func takeDamage(damage: int, attackerGlobalPos: Vector2) -> void:
 	else:
 		var knockback_dir := attackerGlobalPos.direction_to(global_position)
 		knockback_velocity = knockback_dir * KNOCKBACK_FORCE
+
+func apply_spell(element: String, power: float, _reach: float, attackerGlobalPos: Vector2 = Vector2.ZERO) -> void:
+	if not isAlive or element == "heal":
+		return
+	var damage := maxi(1, roundi(20.0 * power))
+	takeDamage(damage, attackerGlobalPos)
 
 func die() -> void:
 	isAlive = false

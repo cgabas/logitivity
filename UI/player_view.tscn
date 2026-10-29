@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://bwpv2d68mvvjx" path="res://UI/player_view.gd" id="1_avetk"]
 [ext_resource type="PackedScene" uid="uid://rwknst2wc7gs" path="res://UI/caster.tscn" id="1_g32cd"]
 [ext_resource type="PackedScene" uid="uid://d4e0nhwy63l31" path="res://UI/mobile_control.tscn" id="2_g32cd"]
+[ext_resource type="Script" uid="uid://dj06ycf4k0uc7" path="res://script/spell_canvas.gd" id="2_rria1"]
 
 [node name="playerView" type="CanvasLayer" unique_id=1485605930]
 layer = 2
@@ -11,3 +12,10 @@ script = ExtResource("1_avetk")
 [node name="MobileControl" parent="." unique_id=1835129452 instance=ExtResource("2_g32cd")]
 
 [node name="CASTER" parent="." unique_id=840094416 instance=ExtResource("1_g32cd")]
+
+[node name="mageCanvasUI" type="Control" parent="." unique_id=1514468485]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("2_rria1")

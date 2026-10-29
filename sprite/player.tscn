@@ -5,6 +5,7 @@
 [ext_resource type="SpriteFrames" uid="uid://cgep6s3etd5ui" path="res://sprite/unclass.tres" id="4_senxl"]
 [ext_resource type="FontFile" uid="uid://ce1jy480h71d0" path="res://UI/fonts_setting/VCR.ttf" id="5_fatq2"]
 [ext_resource type="Texture2D" uid="uid://b3m4un2d2sgcx" path="res://UI/texture/hint_box.png" id="6_ctshl"]
+[ext_resource type="Script" uid="uid://cch4wuknx27ai" path="res://script/spell_caster.gd" id="6_u6aog"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_k7hbp"]
 font = ExtResource("5_fatq2")
@@ -81,3 +82,6 @@ texture = SubResource("GradientTexture2D_yfx53")
 
 [node name="playerShadow" type="LightOccluder2D" parent="." unique_id=741728957]
 occluder = SubResource("OccluderPolygon2D_senxl")
+
+[node name="spellCaster" type="Node" parent="." unique_id=280270213]
+script = ExtResource("6_u6aog")

@@ -22,6 +22,12 @@ func _input(event: InputEvent) -> void:
 func _on_close_pressed() -> void:
 	_close_ui()
 
+func _on_dim_background_gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		_close_ui()
+	elif event is InputEventScreenTouch and event.pressed:
+		_close_ui()
+
 func _close_ui() -> void:
 	ui_closed.emit()
 	queue_free()
