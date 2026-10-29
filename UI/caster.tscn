@@ -1,0 +1,146 @@
+[gd_scene format=3 uid="uid://rwknst2wc7gs"]
+
+[ext_resource type="Script" uid="uid://c8qyekop8oyp5" path="res://UI/caster.gd" id="1_0y3vi"]
+[ext_resource type="LabelSettings" uid="uid://cj7xqwdbuj0t0" path="res://UI/fonts_setting/inGameFontUI_Indicator.tres" id="1_ahr1h"]
+[ext_resource type="Texture2D" uid="uid://raa0coarslu" path="res://UI/texture/progress_bar_empty_L.png" id="2_i7q2p"]
+[ext_resource type="Texture2D" uid="uid://bcq1lj5p1qs0i" path="res://UI/texture/progress_bar_full_L.png" id="3_n1l2g"]
+[ext_resource type="Theme" uid="uid://ddxht2p0bukva" path="res://UI/fonts_setting/mainMenuConf.tres" id="5_m7ft1"]
+[ext_resource type="Texture2D" uid="uid://ddklc7pkg7efx" path="res://UI/texture/progress_bar_empty_R.png" id="6_m7ft1"]
+[ext_resource type="Texture2D" uid="uid://dlrmgjp2kclpj" path="res://UI/texture/menu_normal.png" id="6_uvpg0"]
+[ext_resource type="Texture2D" uid="uid://baaw5g62s54bc" path="res://UI/texture/menu_pressed.png" id="7_5u530"]
+[ext_resource type="Texture2D" uid="uid://cqfxjphal2sbx" path="res://UI/texture/progress_bar_full_R.png" id="7_uvpg0"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_ts1j5"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_yfx53"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_n1l2g"]
+texture = ExtResource("6_uvpg0")
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_m7ft1"]
+texture = ExtResource("7_5u530")
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_3rh7j"]
+texture = ExtResource("7_5u530")
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_ms6qi"]
+texture = ExtResource("7_5u530")
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_i7q2p"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_k7hbp"]
+
+[node name="CASTER" type="Control" unique_id=840094416]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_bottom = -549.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+script = ExtResource("1_0y3vi")
+
+[node name="Indicator" type="HBoxContainer" parent="." unique_id=1181035543]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 92.0
+grow_horizontal = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="VSeparator2" type="VSeparator" parent="Indicator" unique_id=1884743288]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.0
+theme_override_styles/separator = SubResource("StyleBoxEmpty_ts1j5")
+
+[node name="healthVisual" type="VBoxContainer" parent="Indicator" unique_id=1676051419]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="casterHealthProgressBar" type="TextureProgressBar" parent="Indicator/healthVisual" unique_id=1256025052]
+layout_mode = 2
+nine_patch_stretch = true
+stretch_margin_top = 60
+texture_under = ExtResource("6_m7ft1")
+texture_progress = ExtResource("7_uvpg0")
+
+[node name="casterHealthProgressBar_TEST" type="ProgressBar" parent="Indicator/healthVisual" unique_id=56960793]
+visible = false
+layout_mode = 2
+
+[node name="healthLabel" type="Label" parent="Indicator/healthVisual" unique_id=871293347]
+layout_mode = 2
+text = "Health"
+label_settings = ExtResource("1_ahr1h")
+vertical_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="Indicator/healthVisual" unique_id=726246948]
+layout_mode = 2
+theme_override_styles/separator = SubResource("StyleBoxEmpty_yfx53")
+
+[node name="VSeparator" type="VSeparator" parent="Indicator" unique_id=915970598]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.3
+theme_override_styles/separator = SubResource("StyleBoxEmpty_ts1j5")
+
+[node name="MenuButton" type="MenuButton" parent="Indicator" unique_id=2027624920]
+layout_mode = 2
+theme = ExtResource("5_m7ft1")
+theme_override_styles/normal = SubResource("StyleBoxTexture_n1l2g")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_m7ft1")
+theme_override_styles/hover = SubResource("StyleBoxTexture_3rh7j")
+theme_override_styles/disabled = SubResource("StyleBoxTexture_ms6qi")
+text = "       "
+flat = false
+icon_alignment = 1
+vertical_icon_alignment = 2
+expand_icon = true
+item_count = 2
+popup/item_0/text = "Text 1"
+popup/item_0/checkable = 2
+popup/item_0/id = 0
+popup/item_1/text = "Text 2"
+popup/item_1/checkable = 1
+popup/item_1/id = 1
+
+[node name="VSeparator3" type="VSeparator" parent="Indicator" unique_id=986529677]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.3
+theme_override_styles/separator = SubResource("StyleBoxEmpty_i7q2p")
+
+[node name="manaVisual" type="VBoxContainer" parent="Indicator" unique_id=1027358191]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="casterProgressBar" type="TextureProgressBar" parent="Indicator/manaVisual" unique_id=1831341630]
+layout_mode = 2
+nine_patch_stretch = true
+stretch_margin_top = 60
+texture_under = ExtResource("2_i7q2p")
+texture_progress = ExtResource("3_n1l2g")
+
+[node name="casterProgressBar_TEST" type="ProgressBar" parent="Indicator/manaVisual" unique_id=2126972789]
+visible = false
+layout_mode = 2
+
+[node name="casterLabel" type="Label" parent="Indicator/manaVisual" unique_id=176955966]
+layout_mode = 2
+text = "Class"
+label_settings = ExtResource("1_ahr1h")
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="Indicator/manaVisual" unique_id=1214946156]
+layout_mode = 2
+theme_override_styles/separator = SubResource("StyleBoxEmpty_k7hbp")
+
+[node name="VSeparator4" type="VSeparator" parent="Indicator" unique_id=659647033]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.0
+theme_override_styles/separator = SubResource("StyleBoxEmpty_ts1j5")

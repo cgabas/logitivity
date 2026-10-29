@@ -1,0 +1,43 @@
+[gd_scene format=3 uid="uid://bwcksehjydnwj"]
+
+[ext_resource type="Script" uid="uid://setnrjftouu4" path="res://script/chest.gd" id="1_plyfp"]
+[ext_resource type="Texture2D" uid="uid://camd518ghresl" path="res://temporarySprite/ChestClosedimage.png" id="2_bdxih"]
+[ext_resource type="PackedScene" uid="uid://v38in5jsp87l" path="res://sprite/chest_ui.tscn" id="2_bf6ll"]
+[ext_resource type="Texture2D" uid="uid://cirppxciu1n7k" path="res://temporarySprite/ChestOpenedImage.png" id="3_bf6ll"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_piduj"]
+atlas = ExtResource("2_bdxih")
+region = Rect2(0, 0, 800, 600)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_u8jg1"]
+atlas = ExtResource("3_bf6ll")
+region = Rect2(0, 0, 800, 600)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_6koat"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_piduj")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_u8jg1")
+}],
+"loop": 1,
+"name": &"chestOpenClose",
+"speed": 5.0
+}]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_me04g"]
+radius = 80.0
+
+[node name="Chest" type="Area2D" unique_id=532206450]
+script = ExtResource("1_plyfp")
+chest_ui = ExtResource("2_bf6ll")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=2084390820]
+scale = Vector2(0.2, 0.2)
+sprite_frames = SubResource("SpriteFrames_6koat")
+animation = &"chestOpenClose"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1672845181]
+shape = SubResource("CircleShape2D_me04g")

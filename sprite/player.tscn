@@ -1,0 +1,87 @@
+[gd_scene format=3 uid="uid://bj333tfjki8vi"]
+
+[ext_resource type="Script" uid="uid://ceri42v5x4kq7" path="res://script/player.gd" id="1_fatq2"]
+[ext_resource type="PackedScene" uid="uid://cgmem7xgwo2u7" path="res://UI/player_view.tscn" id="2_ctshl"]
+[ext_resource type="SpriteFrames" uid="uid://cgep6s3etd5ui" path="res://sprite/unclass.tres" id="4_senxl"]
+[ext_resource type="FontFile" uid="uid://ce1jy480h71d0" path="res://UI/fonts_setting/VCR.ttf" id="5_fatq2"]
+[ext_resource type="Texture2D" uid="uid://b3m4un2d2sgcx" path="res://UI/texture/hint_box.png" id="6_ctshl"]
+[ext_resource type="Script" uid="uid://cch4wuknx27ai" path="res://script/spell_caster.gd" id="6_u6aog"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_k7hbp"]
+font = ExtResource("5_fatq2")
+font_size = 18
+outline_size = 3
+outline_color = Color(0, 0, 0, 1)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_cbh7h"]
+size = Vector2(14, 14)
+
+[sub_resource type="Gradient" id="Gradient_senxl"]
+offsets = PackedFloat32Array(0.40725806, 1)
+colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_yfx53"]
+gradient = SubResource("Gradient_senxl")
+width = 128
+height = 128
+fill = 1
+fill_from = Vector2(0.502907, 0.49709302)
+fill_to = Vector2(0.8517442, 0.13081396)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_senxl"]
+cull_mode = 1
+polygon = PackedVector2Array(-4, 14, -3, 14, -3, 15, -1, 15, -1, 14, 1, 14, 1, 15, 3, 15, 3, 14, 4, 14, 4, 13, -4, 13)
+
+[node name="player" type="CharacterBody2D" unique_id=88732332]
+texture_filter = 1
+scale = Vector2(4, 4)
+motion_mode = 1
+script = ExtResource("1_fatq2")
+
+[node name="hint" type="Sprite2D" parent="." unique_id=1382061829]
+light_mask = 513
+visibility_layer = 513
+position = Vector2(-15, 5)
+scale = Vector2(0.2, 0.2)
+texture = ExtResource("6_ctshl")
+
+[node name="Label" type="Label" parent="hint" unique_id=1059071484]
+offset_left = -78.75
+offset_top = -8.749999
+offset_right = 5.25
+offset_bottom = 14.250001
+text = "Press  E"
+label_settings = SubResource("LabelSettings_k7hbp")
+
+[node name="playerAnimatedSprite" type="AnimatedSprite2D" parent="." unique_id=24652178]
+texture_filter = 1
+scale = Vector2(0.5, 0.5)
+sprite_frames = ExtResource("4_senxl")
+animation = &"walk_right"
+frame_progress = 0.7494197
+
+[node name="playerCamera" type="Camera2D" parent="." unique_id=732037928]
+position_smoothing_enabled = true
+rotation_smoothing_enabled = true
+
+[node name="playerHitbox" type="CollisionPolygon2D" parent="." unique_id=1540531007]
+position = Vector2(7.2013626, 5.218952)
+polygon = PackedVector2Array(-13.701363, 2.2810478, -7.2013626, 9.531048, -0.7013626, 2.0310478, -3.2013626, -1.7189522, -2.2013626, -6.468952, -7.2013626, -10.468952, -11.951363, -6.468952, -10.701363, -1.7189522)
+
+[node name="playerView" parent="." unique_id=1485605930 instance=ExtResource("2_ctshl")]
+
+[node name="playerRange" type="Area2D" parent="." unique_id=238865673]
+
+[node name="range" type="CollisionShape2D" parent="playerRange" unique_id=700031804]
+position = Vector2(0, 13)
+shape = SubResource("RectangleShape2D_cbh7h")
+
+[node name="playerLight" type="PointLight2D" parent="." unique_id=1031905726]
+visible = false
+texture = SubResource("GradientTexture2D_yfx53")
+
+[node name="playerShadow" type="LightOccluder2D" parent="." unique_id=741728957]
+occluder = SubResource("OccluderPolygon2D_senxl")
+
+[node name="spellCaster" type="Node" parent="." unique_id=280270213]
+script = ExtResource("6_u6aog")
