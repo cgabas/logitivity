@@ -16,6 +16,8 @@
 [ext_resource type="Script" uid="uid://dk0jjt8j5rkkv" path="res://world/enemy_tutorial.gd" id="13_iedf8"]
 [ext_resource type="Texture2D" uid="uid://dg60pxbjb1fif" path="res://UI/texture/enemy_healthbar_E.png" id="15_fmtod"]
 [ext_resource type="Texture2D" uid="uid://8i674rasg5fw" path="res://UI/texture/enemy_healthbar_F.png" id="16_cm483"]
+[ext_resource type="PackedScene" uid="uid://bwcksehjydnwj" path="res://sprite/chest.tscn" id="17_cm483"]
+[ext_resource type="PackedScene" uid="uid://v38in5jsp87l" path="res://sprite/chest_ui.tscn" id="18_elf5d"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_uhyhg"]
 texture = ExtResource("2_go4ko")
@@ -1040,6 +1042,12 @@ offset_transform_enabled = true
 offset_transform_scale = Vector2(0.17, 0.17)
 texture_under = ExtResource("15_fmtod")
 texture_progress = ExtResource("16_cm483")
+
+[node name="Chest" parent="." unique_id=532206450 instance=ExtResource("17_cm483")]
+position = Vector2(1901, 860)
+chest_id = "chest_01"
+is_opened = false
+chest_ui = ExtResource("18_elf5d")
 
 [connection signal="area_entered" from="classesPick/warriorOrb" to="." method="_on_warrior_orb_area_entered"]
 [connection signal="area_exited" from="classesPick/warriorOrb" to="." method="_on_warrior_orb_area_exited"]

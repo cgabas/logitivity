@@ -1,0 +1,68 @@
+[gd_scene format=3 uid="uid://v38in5jsp87l"]
+
+[ext_resource type="Script" uid="uid://bygeuad6ftpjt" path="res://script/control.gd" id="1_paagx"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kisqi"]
+bg_color = Color(1, 0, 0, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0, 0, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="ChestUI" type="CanvasLayer" unique_id=798603506]
+process_mode = 3
+layer = 10
+script = ExtResource("1_paagx")
+
+[node name="DimBackground" type="ColorRect" parent="." unique_id=988178673]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.5019608)
+
+[node name="InventoryPanel" type="Panel" parent="." unique_id=1891510759]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 380.0
+offset_bottom = 280.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TitleLabel" type="Label" parent="InventoryPanel" unique_id=1625844994]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
+
+[node name="ItemGrid" type="GridContainer" parent="InventoryPanel" unique_id=1547297108]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="StatusLabel" type="Label" parent="InventoryPanel" unique_id=2046845371]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
+
+[node name="CloseButton" type="Button" parent="InventoryPanel" unique_id=1092710221]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 18.0
+offset_bottom = 31.0
+mouse_filter = 1
+theme_override_styles/normal = SubResource("StyleBoxFlat_kisqi")
+text = "Close (X)"
+
+[connection signal="gui_input" from="DimBackground" to="." method="_on_dim_background_gui_input"]
