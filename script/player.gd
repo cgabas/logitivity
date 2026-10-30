@@ -6,9 +6,10 @@ const FRAME_UNCLASS = preload("res://sprite/unclass.tres")
 const FRAME_MAGE = preload("res://sprite/mage_class.tres")
 const FRAME_WARRIOR = preload("res://sprite/warrior_class.tres")
 const KATANA_TEXTURE = preload("res://sprite/weapon/katana_sprite.png")
-const SPELL_VFX = preload("res://script/spell_vfx.gd")
+const SPELL_VFX = preload("res://script/spell_vfx.gd") # Friend's new VFX feature
 @export var mana_regen_per_second: float = 3.0
 
+# --- CORE VARIABLES ---
 var isAttacking: bool = false
 var isAlive: bool = true
 var health: float = 100.0
@@ -16,16 +17,23 @@ var maxHealth: float = 100.0
 var mana: float = 100.0
 var maxMana: float = 100.0
 var recordLastDirection: Vector2 = Vector2.DOWN
-var katanaSprite: AnimatedSprite2D = null
+var itemsInTouch: int = 0
+var currItem: Area2D = null
+
+# --- KATANA VARIABLES ---
 var katanaBaseOffset: Vector2 = Vector2.ZERO
 var katanaBaseRotation: float = 0.0
 var katanaFloatTime: float = 0.0
 var isKatanaSwinging: bool = false
-var katanaSwingTween: Tween = null
-var itemsInTouch: int = 0
-var currItem: Area2D = null
 
+# --- FLASH STEP VARIABLES ---
+var isDashing: bool = false
+var dashSpeed: float = 900.0
+var enemiesHitInDash: Array = []
+
+# --- ONREADY NODES ---
 @onready var playerAnimationClass: AnimatedSprite2D = $playerAnimatedSprite
+@onready var katanaSprite: AnimatedSprite2D = $WarriorKatana # Re-linked to your Scene Tree Node
 @onready var playerRange: Area2D = $playerRange
 @onready var playerRangeShape: CollisionShape2D = $playerRange/range
 @onready var hint: Sprite2D = $hint
@@ -51,17 +59,29 @@ func _ready() -> void:
 	playerRange.area_entered.connect(playerRange_Entered)
 	playerRange.area_exited.connect(playerRange_Exited)
 	
+	# Connect Katana animation signal
+	if katanaSprite != null:
+		katanaSprite.animation_finished.connect(_on_katana_anim_finished)
+	
 	#switch class outfit based on class
 	if SaveManager.data["flags"]["isFromHogward"] != null:
 		playerLight.visible = true
 		if SaveManager.data["flags"]["isFromHogward"]:
+			# Mage Class
 			playerAnimationClass.sprite_frames = FRAME_MAGE
+			if katanaSprite: katanaSprite.visible = false
 		else:
+			# Warrior Class
 			playerAnimationClass.sprite_frames = FRAME_WARRIOR
-			createWarriorKatana()
+			if katanaSprite: 
+				katanaSprite.visible = true
+				katanaSprite.play("float")
+			updateKatanaDirection()
 	else:
+		# Unclassed
 		playerLight.visible = false
 		playerAnimationClass.sprite_frames = FRAME_UNCLASS
+		if katanaSprite: katanaSprite.visible = false
 
 func _physics_process(_delta: float) -> void:
 	if not isAlive:
@@ -81,46 +101,64 @@ func _process(delta: float) -> void:
 		var real_delta := delta / maxf(Engine.time_scale, 0.01)
 		set_mana(mana + mana_regen_per_second * real_delta)
 
-	if katanaSprite == null:
-		return
-
-	katanaFloatTime += delta
-	katanaSprite.position = katanaBaseOffset + Vector2(0.0, sin(katanaFloatTime * 3.0) * 1.5)
+	if katanaSprite != null and katanaSprite.visible:
+		katanaFloatTime += delta
+		katanaSprite.position = katanaBaseOffset + Vector2(0.0, sin(katanaFloatTime * 3.0) * 1.5)
 
 #-----------------------------------------------
 #              PLAYER MOVEMENT
 #-----------------------------------------------
 func playerMovementFunction() -> void:
-	#1.interact with items/orbs
+	# --- DASH PHYSICS OVERRIDE ---
+	if isDashing:
+		velocity = recordLastDirection * dashSpeed
+		
+		for area in playerRange.get_overlapping_areas():
+			var enemy_node := area.get_parent()
+			if enemy_node and not enemiesHitInDash.has(enemy_node) and enemy_node.has_method("takeDamage"):
+				enemy_node.takeDamage(50, global_position) 
+				enemiesHitInDash.append(enemy_node) 
+			elif area.has_method("takeDamage") and not enemiesHitInDash.has(area):
+				area.takeDamage(50, global_position)
+				enemiesHitInDash.append(area)
+		return # Exit early so normal movement is disabled!
+
+	# --- 1. GENERAL ACTIONS ---
 	if Input.is_action_just_pressed("player_do"):
 		playerBehaviourFunction()
 		
-	#2.attack enemies
-	if Input.is_action_just_pressed("player_attack"):
-		if SaveManager.data["flags"]["isFromHogward"] == true:
-			#for mage
+	# --- 2. CLASS-SPECIFIC ABILITIES ---
+	var is_mage: bool = (SaveManager.data["flags"]["isFromHogward"] == true)
+	
+	if is_mage:
+		# === MAGE CONTROLS ===
+		if Input.is_action_just_pressed("player_attack"):
 			spellCaster.call("open_canvas")
-		else:
-			#for warrior
+	else:
+		# === WARRIOR CONTROLS ===
+		if Input.is_action_just_pressed("player_attack"):
 			playerAttackFunction()
+			
+		if Input.is_action_just_pressed("player_skill"): 
+			performFlashStep()
 		
 	var direction := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	velocity = direction * SPEED
 	playerAnimationFunction(direction)
 
 #-----------------------------------------------
-#              PLAYER BEHAVIOUR
+#              PLAYER BEHAVIOUR & COMBAT
 #-----------------------------------------------
 func playerBehaviourFunction() -> void:
 	#interact with non-combat items if needed
 	if currItem != null and currItem.has_method("interact"):
 		currItem.interact()
 
-#meele damage for warrior
+#melee damage for warrior
 func playerAttackFunction() -> void:
 	if SaveManager.data["flags"]["isFromHogward"] == true:
 		return
-	if isAttacking:
+	if isAttacking or isDashing:
 		return
 		
 	isAttacking = true
@@ -141,44 +179,49 @@ func playerAttackFunction() -> void:
 	await get_tree().create_timer(0.25).timeout
 	isAttacking = false
 
-func createWarriorKatana() -> void:
-	var katana_frames := SpriteFrames.new()
-	katana_frames.add_animation("float")
-	katana_frames.set_animation_loop("float", true)
-	katana_frames.set_animation_speed("float", 8.0)
+#-----------------------------------------------
+#              FLASH STEP SKILL
+#-----------------------------------------------
+func performFlashStep() -> void:
+	if isDashing or mana < 30.0:
+		return
+		
+	set_mana(mana - 30.0)
+	isDashing = true
+	enemiesHitInDash.clear() 
+	
+	# Turn blue and swing!
+	playerAnimationClass.modulate = Color(0.5, 0.8, 2.0, 0.8)
+	playKatanaSwing()
+	
+	await get_tree().create_timer(0.15).timeout
+	
+	isDashing = false
+	playerAnimationClass.modulate = Color.WHITE
 
-	for frame_index in range(7):
-		var frame_texture := AtlasTexture.new()
-		frame_texture.atlas = KATANA_TEXTURE
-		frame_texture.region = Rect2(frame_index * 64, 0, 64, 64)
-		katana_frames.add_frame("float", frame_texture)
-
-	katanaSprite = AnimatedSprite2D.new()
-	katanaSprite.name = "warriorKatana"
-	katanaSprite.sprite_frames = katana_frames
-	katanaSprite.animation = "float"
-	katanaSprite.scale = Vector2(0.35, 0.35)
-	katanaSprite.flip_h = true
-	add_child(katanaSprite)
-	katanaSprite.play()
-	updateKatanaDirection()
-
+#-----------------------------------------------
+#              KATANA ANIMATION LOGIC
+#-----------------------------------------------
 func playKatanaSwing() -> void:
 	if katanaSprite == null:
 		return
 
-	if katanaSwingTween != null and katanaSwingTween.is_running():
-		katanaSwingTween.kill()
-
 	isKatanaSwinging = true
-	katanaSprite.rotation = katanaBaseRotation - PI / 3.0
-	katanaSwingTween = create_tween()
-	katanaSwingTween.tween_property(katanaSprite, "rotation", katanaBaseRotation + PI / 3.0, 0.11).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	katanaSwingTween.tween_property(katanaSprite, "rotation", katanaBaseRotation, 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	katanaSwingTween.tween_callback(func() -> void:
+	katanaSprite.rotation = 0 
+
+	match recordLastDirection:
+		Vector2.UP:
+			katanaSprite.play("attack_up")
+		Vector2.DOWN:
+			katanaSprite.play("attack_down") 
+		_: 
+			katanaSprite.play("basic_attack")
+
+func _on_katana_anim_finished() -> void:
+	if katanaSprite != null and katanaSprite.animation in ["basic_attack", "attack_up", "attack_down"]:
 		isKatanaSwinging = false
-		katanaSprite.rotation = katanaBaseRotation
-	)
+		katanaSprite.play("float")
+		updateKatanaDirection() 
 
 func updateKatanaDirection() -> void:
 	if katanaSprite == null:
@@ -186,25 +229,30 @@ func updateKatanaDirection() -> void:
 
 	match recordLastDirection:
 		Vector2.UP:
-			katanaBaseOffset = Vector2(0.0, -17.0)
+			katanaBaseOffset = Vector2(0.0, -10.0)
 			katanaBaseRotation = PI / 4.0
-			katanaSprite.z_index = -1
+			katanaSprite.show_behind_parent = true 
 		Vector2.DOWN:
-			katanaBaseOffset = Vector2(0.0, 17.0)
+			katanaBaseOffset = Vector2(0.0, 10.0)
 			katanaBaseRotation = 3.0 * PI / 4.0
-			katanaSprite.z_index = 1
+			katanaSprite.show_behind_parent = false 
 		Vector2.LEFT:
-			katanaBaseOffset = Vector2(-17.0, 0.0)
+			katanaBaseOffset = Vector2(-10.0, 0.0)
 			katanaBaseRotation = -PI / 4.0
-			katanaSprite.z_index = 1
+			katanaSprite.show_behind_parent = false
+			katanaSprite.flip_h = false
 		Vector2.RIGHT:
-			katanaBaseOffset = Vector2(17.0, 0.0)
+			katanaBaseOffset = Vector2(10.0, 0.0)
 			katanaBaseRotation = PI / 4.0
-			katanaSprite.z_index = 1
+			katanaSprite.show_behind_parent = false
+			katanaSprite.flip_h = true
 
 	if not isKatanaSwinging:
 		katanaSprite.rotation = katanaBaseRotation
 
+#-----------------------------------------------
+#              STATS & DAMAGE
+#-----------------------------------------------
 func takeDamage(damage: int, _attackerGlobalPos: Vector2) -> void:
 	if not isAlive or damage <= 0:
 		return
@@ -231,6 +279,7 @@ func apply_spell(element: String, power: float, reach: float, _attackerGlobalPos
 			return
 		health = minf(maxHealth, health + maxf(1.0, 30.0 * power * reach))
 		SaveManager.data["player"]["health"] = health
+		# --- FRIEND'S NEW VFX KEPT INTACT HERE ---
 		SPELL_VFX.spawn(get_tree().current_scene, "heal", global_position, 1.5)
 		var heal_tween := create_tween()
 		heal_tween.tween_property(playerAnimationClass, "modulate", Color.LIME_GREEN, 0.12)
