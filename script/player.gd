@@ -19,6 +19,7 @@ var maxMana: float = 100.0
 var recordLastDirection: Vector2 = Vector2.DOWN
 var itemsInTouch: int = 0
 var currItem: Area2D = null
+var equipped_warrior_skill: String = "flash_step"
 
 # --- KATANA VARIABLES ---
 var katanaBaseOffset: Vector2 = Vector2.ZERO
@@ -140,7 +141,12 @@ func playerMovementFunction() -> void:
 			playerAttackFunction()
 			
 		if Input.is_action_just_pressed("player_skill"): 
-			performFlashStep()
+			match equipped_warrior_skill:
+				"flash_step":
+					performFlashStep()
+				"uppercut":
+					performUppercut()
+				
 		
 	var direction := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	velocity = direction * SPEED
@@ -186,7 +192,7 @@ func performFlashStep() -> void:
 	if isDashing or mana < 30.0:
 		return
 		
-	set_mana(mana - 30.0)
+	set_mana(mana - 1)
 	isDashing = true
 	enemiesHitInDash.clear() 
 	
@@ -198,6 +204,48 @@ func performFlashStep() -> void:
 	
 	isDashing = false
 	playerAnimationClass.modulate = Color.WHITE
+
+#-----------------------------------------------
+#              UPPERCUT SKILLS
+#-----------------------------------------------
+func performUppercut() -> void:
+	if isAttacking or isDashing or mana < 45.0:
+		return
+		
+	set_mana(mana - 1)
+	isAttacking = true
+	
+	# Windup Visuals: Turn orange/red and make the Katana massive
+	playerAnimationClass.modulate = Color(1.0, 0.4, 0.0, 1.0)
+	if katanaSprite != null:
+		katanaSprite.scale = Vector2(0.7, 0.7) # Double the sword size for the heavy swing!
+	
+	playKatanaSwing()
+	
+	# A tiny 0.1s delay gives it that heavy, weighty Wynncraft windup feel
+	await get_tree().create_timer(0.1).timeout
+	
+	# The Explosion: Temporarily expand the playerRange to hit a wider AoE
+	playerRangeShape.scale = Vector2(2.5, 2.5)
+	
+	# Deal massive damage to all enemies caught in the expanded blast
+	for area in playerRange.get_overlapping_areas():
+		var enemy_node := area.get_parent()
+		if enemy_node and enemy_node.has_method("takeDamage"):
+			enemy_node.takeDamage(85, global_position) # 85 burst damage
+		elif area.has_method("takeDamage"):
+			area.takeDamage(85, global_position)
+			
+	# Cooldown and Reset
+	await get_tree().create_timer(0.25).timeout
+	
+	# Revert hitbox, visuals, and sword size back to normal
+	playerRangeShape.scale = Vector2(1.0, 1.0)
+	playerAnimationClass.modulate = Color.WHITE
+	if katanaSprite != null:
+		katanaSprite.scale = Vector2(0.35, 0.35) 
+		
+	isAttacking = false
 
 #-----------------------------------------------
 #              KATANA ANIMATION LOGIC

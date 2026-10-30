@@ -11,6 +11,7 @@
 [ext_resource type="FontFile" uid="uid://ce1jy480h71d0" path="res://UI/fonts_setting/VCR.ttf" id="9_iedf8"]
 [ext_resource type="Texture2D" uid="uid://b33ys6bwq55ww" path="res://UI/texture/button_pressed.png" id="10_ksl00"]
 [ext_resource type="Texture2D" uid="uid://0x7avneiakm7" path="res://UI/texture/button_hover.png" id="11_fmtod"]
+[ext_resource type="PackedScene" uid="uid://7uqoo8wfnsd5" path="res://skill_selector.tscn" id="12_2dlxi"]
 [ext_resource type="Texture2D" uid="uid://bevaxa2i5kuch" path="res://UI/texture/button_disable.png" id="12_cm483"]
 [ext_resource type="SpriteFrames" uid="uid://dknncqkp107kd" path="res://sprite/goblinSprite.tres" id="13_8s6e0"]
 [ext_resource type="Script" uid="uid://dk0jjt8j5rkkv" path="res://world/enemy_tutorial.gd" id="13_iedf8"]
@@ -1283,6 +1284,8 @@ text = "Cancel"
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_styles/separator = SubResource("StyleBoxEmpty_m0ick")
+
+[node name="skill_selector" parent="ClassConfirmCanv" unique_id=1139080847 instance=ExtResource("12_2dlxi")]
 
 [node name="TutorialArea" type="Node2D" parent="." unique_id=287388576]
 position = Vector2(2024.2136, 1110.2299)
