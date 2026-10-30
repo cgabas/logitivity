@@ -9,16 +9,18 @@ var power := 1.0
 var max_range := 300.0
 var speed := 450.0
 var travelled := 0.0
+var caster: Node = null
 
 func _ready() -> void:
 	if not body_entered.is_connected(_on_body_entered):
 		body_entered.connect(_on_body_entered)
 
-func setup(e: String, d: Vector2, r: float, p: float) -> void:
+func setup(e: String, d: Vector2, r: float, p: float, source: Node = null) -> void:
 	element = e
 	dir = d
 	max_range = r
 	power = p
+	caster = source
 	rotation = d.angle()
 	modulate = COLORS.get(e, Color.WHITE)
 	queue_redraw()
@@ -31,7 +33,7 @@ func _physics_process(delta: float) -> void:
 		queue_free()
 
 func _on_body_entered(body: Node) -> void:
-	if element == "heal" and not body.is_in_group("allies"):
+	if body == caster:
 		return
 	if element != "heal" and body.is_in_group("allies"):
 		return

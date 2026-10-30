@@ -17,7 +17,7 @@ func setup(element: String, r: float, power: float) -> void:
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	for b in get_overlapping_bodies():
-		if element == "heal" and not b.is_in_group("allies"):
+		if element == "heal" and not b.is_in_group("allies") and not b.is_in_group("enemies"):
 			continue
 		if element != "heal" and not b.is_in_group("enemies"):
 			continue

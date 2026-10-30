@@ -6,6 +6,7 @@ const FRAME_UNCLASS = preload("res://sprite/unclass.tres")
 const FRAME_MAGE = preload("res://sprite/mage_class.tres")
 const FRAME_WARRIOR = preload("res://sprite/warrior_class.tres")
 const KATANA_TEXTURE = preload("res://sprite/weapon/katana_sprite.png")
+const SPELL_VFX = preload("res://script/spell_vfx.gd")
 @export var mana_regen_per_second: float = 3.0
 
 var isAttacking: bool = false
@@ -97,8 +98,10 @@ func playerMovementFunction() -> void:
 	#2.attack enemies
 	if Input.is_action_just_pressed("player_attack"):
 		if SaveManager.data["flags"]["isFromHogward"] == true:
+			#for mage
 			spellCaster.call("open_canvas")
 		else:
+			#for warrior
 			playerAttackFunction()
 		
 	var direction := Input.get_vector("move_left", "move_right", "move_up", "move_down")
@@ -113,7 +116,10 @@ func playerBehaviourFunction() -> void:
 	if currItem != null and currItem.has_method("interact"):
 		currItem.interact()
 
+#meele damage for warrior
 func playerAttackFunction() -> void:
+	if SaveManager.data["flags"]["isFromHogward"] == true:
+		return
 	if isAttacking:
 		return
 		
@@ -225,6 +231,7 @@ func apply_spell(element: String, power: float, reach: float, _attackerGlobalPos
 			return
 		health = minf(maxHealth, health + maxf(1.0, 30.0 * power * reach))
 		SaveManager.data["player"]["health"] = health
+		SPELL_VFX.spawn(get_tree().current_scene, "heal", global_position, 1.5)
 		var heal_tween := create_tween()
 		heal_tween.tween_property(playerAnimationClass, "modulate", Color.LIME_GREEN, 0.12)
 		heal_tween.tween_property(playerAnimationClass, "modulate", Color.WHITE, 0.12)

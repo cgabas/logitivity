@@ -18,11 +18,13 @@ extends Node2D
 @onready var orbRoomLight: PointLight2D = $PointLight2D
 @onready var door: TileMapLayer = $Door
 @onready var tutorArea: Area2D = $TutorialArea/tutorArea
+@onready var attackTutorialLabel: Label = $TutorialArea/step1/Label
 
 #true = Mage, false = Warrior, null = None selected
 var selectClassType: Variant = null
 
 func _ready() -> void:
+	_update_attack_tutorial_label()
 	#1.register orbs into the "Items" group
 	warriorOrb.add_to_group("Items")
 	mageOrb.add_to_group("Items")
@@ -60,10 +62,26 @@ func _physics_process(_delta: float) -> void:
 		showConfirmationPopup(true)
 
 func _process(_delta: float) -> void:
+	_update_attack_tutorial_label()
 	#track player position in SaveManager while moving
 	if player.velocity != Vector2.ZERO:
 		SaveManager.data["player"]["position"]["x"] = player.position.x
 		SaveManager.data["player"]["position"]["y"] = player.position.y
+
+func _update_attack_tutorial_label() -> void:
+	var prompt := "Tap B To Attack"
+	if GlobalInputDetection.inputType() == 0:
+		prompt = "Press SPACE To Attack"
+		for action_event in InputMap.action_get_events("player_attack"):
+			if action_event is InputEventKey:
+				var key_event := action_event as InputEventKey
+				var key_code := key_event.physical_keycode if key_event.physical_keycode != KEY_NONE else key_event.keycode
+				var key_name := OS.get_keycode_string(key_code)
+				if not key_name.is_empty():
+					prompt = "Press " + key_name.to_upper() + " To Attack"
+					break
+	if attackTutorialLabel.text != prompt:
+		attackTutorialLabel.text = prompt
 
 #========================================
 #               FUNCTIONS

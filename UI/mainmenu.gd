@@ -1,5 +1,7 @@
 extends Control
 
+const SETTINGS_THEME := preload("res://UI/fonts_setting/mainMenuConf.tres")
+
 #buttons
 @onready var startNewBtn: Button = $VBoxContainer/HBoxContainer/ButtonContainer/StartNew
 @onready var continueBtn: Button = $VBoxContainer/HBoxContainer/ButtonContainer/Continue
@@ -13,12 +15,16 @@ extends Control
 @onready var namePromptWindow: Window = $CanvasLayer/namePromptWindow
 @onready var playerNameField: LineEdit = $CanvasLayer/namePromptWindow/HBoxContainer/VBoxContainer/playerNameField
 
+var settingsWindow: Window
+var inputModeOption: OptionButton
+
 enum PopupType { NONE, CONFIRM_OVERWRITE, NAME_PROMPT }
 
 #======================================
 #          INITIAL FUNCTION
 #======================================
 func _ready() -> void:
+	_create_settings_window()
 	#hide all popups on startup
 	popupControl(false)
 	
@@ -53,6 +59,58 @@ func startGame() -> void:
 		SaveManager.startNew()
 		popupControl(true, PopupType.NAME_PROMPT)
 
+func _create_settings_window() -> void:
+	settingsWindow = Window.new()
+	settingsWindow.title = "Settings"
+	settingsWindow.size = Vector2i(440, 280)
+	settingsWindow.unresizable = true
+	settingsWindow.transient = true
+	settingsWindow.exclusive = true
+	settingsWindow.theme = SETTINGS_THEME
+	settingsWindow.close_requested.connect(_on_settings_close_requested)
+	add_child(settingsWindow)
+	settingsWindow.hide()
+
+	var layout := VBoxContainer.new()
+	settingsWindow.add_child(layout)
+	layout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	layout.offset_left = 28.0
+	layout.offset_top = 24.0
+	layout.offset_right = -28.0
+	layout.offset_bottom = -24.0
+	layout.add_theme_constant_override("separation", 14)
+
+	var heading := Label.new()
+	heading.text = "INPUT SETTINGS"
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	heading.add_theme_font_size_override("font_size", 24)
+	layout.add_child(heading)
+
+	var input_label := Label.new()
+	input_label.text = "Choose how you control the game"
+	input_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	layout.add_child(input_label)
+
+	inputModeOption = OptionButton.new()
+	inputModeOption.add_item("Keyboard")
+	inputModeOption.add_item("Touchscreen")
+	inputModeOption.custom_minimum_size = Vector2(0.0, 46.0)
+	inputModeOption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	inputModeOption.item_selected.connect(_on_input_mode_selected)
+	layout.add_child(inputModeOption)
+
+	var hint := Label.new()
+	hint.text = "Touchscreen mode shows the on-screen controls."
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	layout.add_child(hint)
+
+	var done_button := Button.new()
+	done_button.text = "DONE"
+	done_button.custom_minimum_size = Vector2(0.0, 46.0)
+	done_button.pressed.connect(settingsWindow.hide)
+	layout.add_child(done_button)
+
 #======================================
 #              BUTTONS
 #======================================
@@ -64,9 +122,15 @@ func _on_continue_pressed() -> void:
 	var currentScene: String = SaveManager.data.get("current_area", "res://world/level_1.tscn")
 	get_tree().change_scene_to_file(currentScene)
 
-# Setting - SOON TO BE ADDED
 func _on_setting_pressed() -> void:
-	pass
+	inputModeOption.select(GlobalInputDetection.inputType())
+	settingsWindow.popup_centered()
+
+func _on_input_mode_selected(index: int) -> void:
+	GlobalInputDetection.setInputMode(index)
+
+func _on_settings_close_requested() -> void:
+	settingsWindow.hide()
 
 func _on_exit_pressed() -> void:
 	get_tree().quit()

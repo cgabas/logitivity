@@ -57,6 +57,10 @@ func _is_mage() -> bool:
 	return player != null and SaveManager.data["flags"]["isFromHogward"] == true
 
 func _on_cast(strokes: Array, center: Vector2, radius: float) -> void:
+	if not _is_mage():
+		if canvas != null:
+			canvas.call("close")
+		return
 	var spell := parser.parse(strokes, center, radius)
 	canvas.call("close")
 	if player == null or not player.has_method("set_mana"):
@@ -113,7 +117,7 @@ func _cast_arrow(spell: SpellData, power: float) -> void:
 		var p := _make_effect(projectile_scene, PROJECTILE_SCRIPT, 8.0)
 		get_tree().current_scene.add_child(p)
 		p.global_position = player.global_position
-		p.call("setup", spell.sigil, dir, 300.0 * spell.reach, power)
+		p.call("setup", spell.sigil, dir, 300.0 * spell.reach, power, player)
 		await get_tree().create_timer(0.08).timeout
 
 func _cast_burst(spell: SpellData, power: float) -> void:
