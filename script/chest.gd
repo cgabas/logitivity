@@ -6,9 +6,30 @@ class_name Chest
 @export var is_opened: bool = false
 @export var chest_ui: PackedScene
 
+# Chest loot data array with coin, health potion, and mana potion
+@export var items: Array[Dictionary] = [
+	{
+		"id": "coin",
+		"name": "Gold Coin",
+		"icon": preload("res://temporarySprite/coin.png"),
+		"quantity": 10
+	},
+	{
+		"id": "health_potion",
+		"name": "Health Potion",
+		"icon": preload("res://temporarySprite/HealthPot.png"),
+		"quantity": 2
+	},
+	{
+		"id": "mana_potion",
+		"name": "Mana Potion",
+		"icon": preload("res://temporarySprite/manaPot.png"),
+		"quantity": 1
+	}
+]
+
 @onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
 
-# Changed type hint from Control to CanvasLayer (or Node)
 var active_ui: CanvasLayer = null
 
 func _ready() -> void:
@@ -36,7 +57,10 @@ func open_ui() -> void:
 		get_tree().current_scene.add_child(ui_instance)
 		active_ui = ui_instance
 		
-		# Pause the game so the player stops moving/attacking while looting
+		# Pass both the items list AND the chest reference (self) to the UI script
+		if active_ui.has_method("set_chest_data"):
+			active_ui.set_chest_data(items, self)
+		
 		get_tree().paused = true
 		
 		if active_ui.has_signal("ui_closed"):
@@ -46,7 +70,6 @@ func open_ui() -> void:
 
 func _on_ui_closed() -> void:
 	active_ui = null
-	# Unpause the game when closing the chest
 	get_tree().paused = false
 	is_opened = false
 	sprite.stop()
