@@ -14,7 +14,9 @@ func _init() -> void:
 	sigils.add("fire", [[Vector2(0, 1), Vector2(0.5, 0), Vector2(1, 1), Vector2(0, 1)]])
 	sigils.add("earth", [[Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1), Vector2(0, 0)]])
 	sigils.add("water", [_circle()])
-	sigils.add("wind", [_s_curve()])
+	var wind_n := _n_shape()
+	sigils.add("wind", [wind_n])
+	sigils.add("wind", [_reverse_path(wind_n)])
 	sigils.add("poison", [[Vector2(0, 0), Vector2(1, 1)], [Vector2(1, 0), Vector2(0, 1)]])
 	sigils.add("heal", [_heart()])
 
@@ -78,15 +80,15 @@ func _circle() -> Array:
 		pts.append(Vector2(0.5, 0.5) + Vector2(cos(TAU * i / 32.0), sin(TAU * i / 32.0)) * 0.5)
 	return pts
 
-func _s_curve() -> Array:
-	var pts := []
-	for d in range(-30, -271, -15):
-		var a := deg_to_rad(d)
-		pts.append(Vector2(0.5 + 0.25 * cos(a), 0.25 + 0.25 * sin(a)))
-	for d in range(-90, 151, 15):
-		var a := deg_to_rad(d)
-		pts.append(Vector2(0.5 + 0.25 * cos(a), 0.75 + 0.25 * sin(a)))
-	return pts
+func _n_shape() -> Array:
+	# Simple, segmented capital N for easier one-stroke recognition.
+	return [Vector2(0.12, 0.08), Vector2(0.12, 0.92),
+		Vector2(0.88, 0.08), Vector2(0.88, 0.92)]
+
+func _reverse_path(path: Array) -> Array:
+	var reversed := path.duplicate()
+	reversed.reverse()
+	return reversed
 
 func _heart() -> Array:
 	var pts := []

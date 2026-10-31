@@ -16,7 +16,7 @@ func _ready() -> void:
 func setInputMode(mode: int) -> void:
 	if mode != inputMode.KEYBOARD and mode != inputMode.TOUCH:
 		return
-	currentInputMode = mode
+	currentInputMode = inputMode.TOUCH if mode == inputMode.TOUCH else inputMode.KEYBOARD
 	var settings := ConfigFile.new()
 	settings.set_value("controls", "input_mode", "touchscreen" if mode == inputMode.TOUCH else "keyboard")
 	var error := settings.save(SETTINGS_PATH)
