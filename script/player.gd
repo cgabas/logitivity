@@ -188,6 +188,7 @@ func playerMovementFunction(delta: float) -> void:
 	# --- 1. GENERAL ACTIONS ---
 	if Input.is_action_just_pressed("player_do"):
 		if has_selected_potion():
+			@warning_ignore("confusable_local_declaration")
 			var tutorial_stage := str(SaveManager.data.get("flags", {}).get("tutorial_stage", "complete"))
 			if tutorial_stage != "potion_throw":
 				_drink_selected_potion()
@@ -201,41 +202,40 @@ func playerMovementFunction(delta: float) -> void:
 	
 	if is_mage:
 		# === MAGE CONTROLS ===
-		if Input.is_action_just_pressed("player_attack"):
-			if has_selected_potion():
-				if _can_throw_selected_potion():
-					_begin_potion_action()
-			elif combat_allowed:
-				spellCaster.call("open_canvas")
+		if Input.is_action_just_pressed("player_attack") and combat_allowed:
+			spellCaster.call("open_canvas")
 	else:
 		# === WARRIOR CONTROLS ===
-		if Input.is_action_just_pressed("player_attack"):
-			if has_selected_potion():
-				if _can_throw_selected_potion():
-					_begin_potion_action()
-			elif combat_allowed:
-				playerAttackFunction()
-	if Input.is_action_just_released("player_attack") and potion_hold_active:
-		_end_potion_action()
+		if Input.is_action_just_pressed("player_attack") and combat_allowed:
+			playerAttackFunction()
 			
-		if Input.is_action_just_pressed("player_skill") and _has_warrior_skill_unlocked():
-			match equipped_warrior_skill:
-				"flash_step":
-					performFlashStep()
-				"uppercut":
-					performUppercut()
+	# --- INDEPENDENT SKILL CHECK (Fixed Indentation) ---
+	if Input.is_action_just_pressed("player_skill") and _has_warrior_skill_unlocked():
+		match equipped_warrior_skill:
+			"flash_step":
+				performFlashStep()
+			"uppercut":
+				performUppercut()
 				
+	# --- SEPARATED POTION THROW LOGIC FOR PC ---
+	# (You will need to map a new Input map action for this, e.g., "player_throw_potion")
+	if Input.is_action_just_pressed("player_throw_potion"):
+		if has_selected_potion() and _can_throw_selected_potion():
+			_begin_potion_action()
+			
+	if Input.is_action_just_released("player_throw_potion") and potion_hold_active:
+		_end_potion_action()
 		
 	if potion_hold_active:
 		velocity = Vector2.ZERO
 		playerAnimationFunction(Vector2.ZERO)
 		return
+		
 	var direction := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	var speed_multiplier := 1.2 if speed_potion_time_left > 0.0 else 1.0
 	velocity = direction * SPEED * speed_multiplier + wind_push_velocity
 	wind_push_velocity = wind_push_velocity.move_toward(Vector2.ZERO, WIND_PUSH_DECELERATION * delta)
 	playerAnimationFunction(direction)
-
 #-----------------------------------------------
 #              PLAYER BEHAVIOUR & COMBAT
 #-----------------------------------------------

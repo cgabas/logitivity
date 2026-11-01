@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/name="prototype_cikai2"
+config/name="Heresyafi"
 run/main_scene="uid://cfvc61q7pgn2k"
 config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://icon.svg"
