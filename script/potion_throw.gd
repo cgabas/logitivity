@@ -2,20 +2,23 @@ extends Node2D
 
 const ITEM_REGISTRY := preload("res://script/item_registry.gd")
 const SPLASH_RADIUS := 72.0
-const THROW_DISTANCE := 180.0
+const MIN_THROW_DISTANCE := 96.0
+const MAX_THROW_DISTANCE := 360.0
 const FLIGHT_TIME := 0.38
 
 var potion_id := ""
 var direction := Vector2.RIGHT
+var throw_distance := MIN_THROW_DISTANCE
 var start_position := Vector2.ZERO
 var end_position := Vector2.ZERO
 var elapsed := 0.0
 
-func setup(item_id: String, facing: Vector2) -> void:
+func setup(item_id: String, facing: Vector2, distance: float) -> void:
 	potion_id = item_id
 	direction = facing.normalized() if facing != Vector2.ZERO else Vector2.DOWN
+	throw_distance = clampf(distance, MIN_THROW_DISTANCE, MAX_THROW_DISTANCE)
 	start_position = global_position
-	end_position = start_position + direction * THROW_DISTANCE
+	end_position = start_position + direction * throw_distance
 
 func _ready() -> void:
 	var item_data := ITEM_REGISTRY.get_item(potion_id)
@@ -27,8 +30,10 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	elapsed += delta
-	var progress := clampf(elapsed / FLIGHT_TIME, 0.0, 1.0)
-	global_position = start_position.lerp(end_position, progress) + Vector2.UP * sin(progress * PI) * 28.0
+	var flight_duration := FLIGHT_TIME * (0.45 + 0.55 * throw_distance / MAX_THROW_DISTANCE)
+	var progress := clampf(elapsed / flight_duration, 0.0, 1.0)
+	var arc_height := 28.0 * throw_distance / MAX_THROW_DISTANCE
+	global_position = start_position.lerp(end_position, progress) + Vector2.UP * sin(progress * PI) * arc_height
 	if progress >= 1.0:
 		_detonate()
 		queue_free()

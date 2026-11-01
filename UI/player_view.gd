@@ -36,10 +36,13 @@ func _ready() -> void:
 
 # Enable mobile UI controls when touchscreen mode is selected.
 func _process(_delta: float) -> void:
-	if GlobalInputDetection.inputType() == 0:
-		mobileControl.visible = false
-	else:
-		mobileControl.visible = true
+	var mage_canvas := get_node_or_null("mageCanvasUI") as Control
+	var drawing_spell: bool = mage_canvas != null and mage_canvas.visible
+	var touch_controls_enabled: bool = GlobalInputDetection.inputType() != 0 and not drawing_spell
+	mobileControl.visible = touch_controls_enabled
+	var touch_action_layer := mobileControl.get_node_or_null("CanvasLayer") as CanvasLayer
+	if touch_action_layer != null:
+		touch_action_layer.visible = touch_controls_enabled
 
 func _unhandled_input(event: InputEvent) -> void:
 	if inventory_menu != null and inventory_menu.visible:

@@ -1,24 +1,28 @@
 extends Node2D
 
-const THROW_DISTANCE := 180.0
+const MIN_THROW_DISTANCE := 96.0
+const MAX_THROW_DISTANCE := 360.0
 const SPLASH_RADIUS := 72.0
 const DOT_SPACING := 16.0
 
 var direction := Vector2.DOWN
+var throw_distance := MIN_THROW_DISTANCE
 
-func set_direction(value: Vector2) -> void:
+func set_aim(value: Vector2, distance: float) -> void:
 	if value.length_squared() > 0.01:
 		direction = value.normalized()
+	throw_distance = clampf(distance, MIN_THROW_DISTANCE, MAX_THROW_DISTANCE)
 	queue_redraw()
 
 func _draw() -> void:
-	for dot_index in range(1, int(THROW_DISTANCE / DOT_SPACING) + 1):
-		var progress := float(dot_index) * DOT_SPACING / THROW_DISTANCE
-		var point := direction * (THROW_DISTANCE * progress)
-		point.y -= sin(progress * PI) * 28.0
+	var arc_height := 28.0 * throw_distance / MAX_THROW_DISTANCE
+	for dot_index in range(1, int(throw_distance / DOT_SPACING) + 1):
+		var progress := float(dot_index) * DOT_SPACING / throw_distance
+		var point := direction * (throw_distance * progress)
+		point.y -= sin(progress * PI) * arc_height
 		var radius := lerpf(2.2, 4.0, progress)
 		draw_circle(point, radius, Color(0.48, 0.9, 1.0, 0.78))
-	var landing := direction * THROW_DISTANCE
+	var landing := direction * throw_distance
 	draw_circle(landing, SPLASH_RADIUS, Color(0.35, 0.78, 1.0, 0.11))
 	for arc_index in 12:
 		var start_angle := TAU * float(arc_index) / 12.0

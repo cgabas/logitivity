@@ -15,9 +15,20 @@ const WET_DURATION := 3.5
 const WET_SPEED_MULTIPLIER := 0.45
 const WIND_KNOCKBACK_FORCE := 750.0
 const SPELL_VFX = preload("res://script/spell_vfx.gd")
+const ENEMY_HEALTHBAR_UNDER := preload("res://UI/texture/enemy_healthbar_E.png")
+const ENEMY_HEALTHBAR_PROGRESS := preload("res://UI/texture/enemy_healthbar_F.png")
+
+@export var health_multiplier: float = 1.0
+@export var damage_multiplier: float = 1.0
+@export var movement_multiplier: float = 1.0
+@export var is_boss: bool = false
 
 var target_player: CharacterBody2D = null
 var health: int = MAX_HEALTH
+var max_health: int = MAX_HEALTH
+var attack_damage: int = ATTACK_DAMAGE
+var movement_speed: float = SPEED
+var attack_range: float = ATTACK_RANGE
 var defence: int = 0
 var maxDefence: int = 100
 var maxAttack: int = ATTACK_DAMAGE
@@ -37,21 +48,36 @@ var poison_time_left := 0.0
 var poison_tick_time := 0.0
 var poison_damage_per_tick := 0
 var wet_time_left := 0.0
+var boss_minion_spawn_timer: float = 0.0
+var boss_minions_remaining_this_minute: int = 0
+var boss_minion_spawn_interval: float = 0.0
+var boss_minion_sequence: int = 0
 
 #nodes
-@onready var enemyTutorialArea: Area2D = $enemyTutorialArea
-@onready var enemyTutorialSprite: AnimatedSprite2D = $enemyTutorialSprite
-@onready var enemyTutorialShape: CollisionShape2D = $enemyTutorialShape
-@onready var enemyTutorialAreaShape: CollisionShape2D = $enemyTutorialArea/enemyTutorialAreaShape
-@onready var enemyHealthBar: TextureProgressBar = $enemyHealthBar
+@onready var enemyTutorialArea: Area2D = _get_child_alias("enemyTutorialArea", "bossTutorialArea") as Area2D
+@onready var enemyTutorialSprite: AnimatedSprite2D = _get_child_alias("enemyTutorialSprite", "bossTutorialSprite") as AnimatedSprite2D
+@onready var enemyTutorialShape: CollisionShape2D = _get_child_alias("enemyTutorialShape", "bossTutorialShape") as CollisionShape2D
+@onready var enemyTutorialAreaShape: CollisionShape2D = _get_nested_shape_alias() as CollisionShape2D
+@onready var enemyHealthBar: TextureProgressBar = _get_child_alias("enemyHealthBar", "bossTutorialHealthBar") as TextureProgressBar
+@onready var bossDetectionArea: Area2D = get_node_or_null("../../bossArea") as Area2D
 
 func _ready() -> void:
 	add_to_group("Enemies")
 	add_to_group("enemies")
+	max_health = maxi(1, roundi(float(MAX_HEALTH) * maxf(health_multiplier, 0.1)))
+	attack_damage = maxi(1, roundi(float(ATTACK_DAMAGE) * maxf(damage_multiplier, 0.1)))
+	var base_speed_multiplier: float = 1.0 if is_boss else 0.8
+	movement_speed = SPEED * base_speed_multiplier * maxf(movement_multiplier, 0.1)
+	attack_range = ATTACK_RANGE * (1.5 if is_boss else 1.0)
+	if is_boss:
+		health = max_health
 	var enemy_defaults: Dictionary = SaveManager.data.get("enemy_defaults", {})
 	maxDefence = maxi(0, int(enemy_defaults.get("maxDefence", 100)))
 	defence = maxi(0, int(enemy_defaults.get("defence", 0)))
 	maxAttack = maxi(1, int(enemy_defaults.get("maxAttack", ATTACK_DAMAGE)))
+	if is_boss:
+		maxDefence *= 10
+		maxAttack *= 10
 	var saved_enemy: Dictionary = _get_saved_enemy_data()
 	if not saved_enemy.is_empty():
 		if saved_enemy.get("is_alive", true) != true:
@@ -60,7 +86,7 @@ func _ready() -> void:
 		var saved_position: Dictionary = saved_enemy.get("position", {})
 		if saved_position.has("x") and saved_position.has("y"):
 			global_position = Vector2(float(saved_position["x"]), float(saved_position["y"]))
-		health = clampi(int(saved_enemy.get("health", MAX_HEALTH)), 0, MAX_HEALTH)
+		health = clampi(int(saved_enemy.get("health", max_health)), 0, max_health)
 		shield_health = maxi(0, int(saved_enemy.get("shield_health", 0)))
 		defence = maxi(0, int(saved_enemy.get("defence", defence)))
 		attack_potion_time_left = maxf(0.0, float(saved_enemy.get("attack_potion_time_left", 0.0)))
@@ -77,15 +103,42 @@ func _ready() -> void:
 		wet_time_left = maxf(0.0, float(saved_enemy.get("wet_time_left", 0.0)))
 		if saved_enemy.has("facing_left"):
 			enemyTutorialSprite.flip_h = saved_enemy["facing_left"] == true
-	enemyHealthBar.max_value = MAX_HEALTH
+	if is_boss:
+		_configure_boss_health_bar()
+	enemyHealthBar.max_value = max_health
 	enemyHealthBar.value = health
 	enemyTutorialSprite.play("idle")
+	if is_boss and bossDetectionArea != null:
+		if not bossDetectionArea.body_entered.is_connected(_on_boss_detection_body_entered):
+			bossDetectionArea.body_entered.connect(_on_boss_detection_body_entered)
 	
 	#connect signals via code safely
 	if not enemyTutorialArea.area_entered.is_connected(_on_enemy_tutorial_area_area_entered):
 		enemyTutorialArea.area_entered.connect(_on_enemy_tutorial_area_area_entered)
 	if not enemyTutorialArea.area_exited.is_connected(_on_enemy_tutorial_area_area_exited):
 		enemyTutorialArea.area_exited.connect(_on_enemy_tutorial_area_area_exited)
+
+func _get_child_alias(primary_name: String, boss_name: String) -> Node:
+	var child := get_node_or_null(primary_name)
+	return child if child != null else get_node_or_null(boss_name)
+
+func _get_nested_shape_alias() -> Node:
+	var area := get_node_or_null("enemyTutorialArea")
+	if area == null:
+		area = get_node_or_null("bossTutorialArea")
+	if area == null:
+		return null
+	var shape := area.get_node_or_null("enemyTutorialAreaShape")
+	return shape if shape != null else area.get_node_or_null("bossTutorialAreaShape")
+
+func _configure_boss_health_bar() -> void:
+	enemyHealthBar.texture_under = ENEMY_HEALTHBAR_UNDER
+	enemyHealthBar.texture_progress = ENEMY_HEALTHBAR_PROGRESS
+	enemyHealthBar.offset_left = -90.0
+	enemyHealthBar.offset_top = -145.0
+	enemyHealthBar.offset_right = 90.0
+	enemyHealthBar.offset_bottom = -121.0
+	enemyHealthBar.z_index = 10
 
 func _physics_process(delta: float) -> void:
 	if not isAlive:
@@ -105,6 +158,8 @@ func _physics_process(delta: float) -> void:
 		
 	if attack_timer > 0.0:
 		attack_timer -= delta
+	if is_boss and target_player != null and target_player.get("isAlive") != false:
+		_process_boss_minion_summons(delta)
 		
 	#1.handle knockback smoothly
 	if knockback_velocity.length() > 5.0:
@@ -140,6 +195,63 @@ func _on_enemy_tutorial_area_area_exited(area: Area2D) -> void:
 		if isAlive:
 			enemyTutorialSprite.play("idle")
 
+func _on_boss_detection_body_entered(body: Node2D) -> void:
+	if not isAlive or not body.is_in_group("player") or not body is CharacterBody2D:
+		return
+	target_player = body as CharacterBody2D
+	if boss_minions_remaining_this_minute == 0:
+		_begin_boss_minion_cycle()
+
+func _begin_boss_minion_cycle() -> void:
+	boss_minions_remaining_this_minute = randi_range(2, 4)
+	boss_minion_spawn_interval = 60.0 / float(boss_minions_remaining_this_minute)
+	boss_minion_spawn_timer = boss_minion_spawn_interval
+
+func _process_boss_minion_summons(delta: float) -> void:
+	boss_minion_spawn_timer -= delta
+	if boss_minion_spawn_timer > 0.0:
+		return
+	_spawn_boss_minion()
+	boss_minions_remaining_this_minute -= 1
+	if boss_minions_remaining_this_minute <= 0:
+		_begin_boss_minion_cycle()
+	else:
+		boss_minion_spawn_timer = boss_minion_spawn_interval
+
+func _spawn_boss_minion() -> void:
+	var scene_root := get_tree().current_scene
+	if scene_root == null:
+		return
+	var template := scene_root.get_node_or_null("TutorialArea/step1/enemyTutorial") as CharacterBody2D
+	if template == null:
+		return
+	boss_minion_sequence += 1
+	var minion := template.duplicate() as CharacterBody2D
+	if minion == null:
+		return
+	minion.name = "BossMinion_%04d" % boss_minion_sequence
+	minion.set("health_multiplier", 1.0)
+	minion.set("damage_multiplier", 1.0)
+	minion.set("movement_multiplier", 1.0)
+	minion.set("is_boss", false)
+	minion.set("isAlive", true)
+	minion.set("health", MAX_HEALTH)
+	minion.set("target_player", target_player)
+	minion.visible = true
+	var spawn_direction := Vector2.from_angle(randf_range(0.0, TAU))
+	var spawn_position := global_position + spawn_direction * randf_range(280.0, 360.0)
+	scene_root.add_child(minion)
+	minion.global_position = spawn_position
+	minion.remove_from_group("Enemies")
+	minion.set_physics_process(true)
+	for path in ["enemyTutorialShape", "enemyTutorialArea/enemyTutorialAreaShape"]:
+		var shape := minion.get_node_or_null(path) as CollisionShape2D
+		if shape != null:
+			shape.set_deferred("disabled", false)
+	var health_bar := minion.get_node_or_null("enemyHealthBar") as TextureProgressBar
+	if health_bar != null:
+		health_bar.show()
+
 #===================================
 #        COMBAT & MOVEMENT
 #===================================
@@ -152,11 +264,11 @@ func chaseAndAttack() -> void:
 		enemyTutorialSprite.flip_h = (direction.x < 0)
 	
 	#chase if outside attack reach
-	if distance_to_player > ATTACK_RANGE:
+	if distance_to_player > attack_range:
 		var speed_multiplier := WET_SPEED_MULTIPLIER if wet_time_left > 0.0 else 1.0
 		if speed_potion_time_left > 0.0:
 			speed_multiplier *= 1.2
-		velocity = direction * SPEED * speed_multiplier
+		velocity = direction * movement_speed * speed_multiplier
 		if enemyTutorialSprite.sprite_frames.has_animation("walk"):
 			enemyTutorialSprite.play("walk")
 		else:
@@ -171,13 +283,13 @@ func chaseAndAttack() -> void:
 				and target_player.call("is_melee_attack_blocked", self):
 				attack_timer = ATTACK_COOLDOWN
 			elif target_player.has_method("takeMeleeDamage"):
-				var outgoing_damage := ATTACK_DAMAGE + (maxi(1, roundi(float(maxAttack) * 0.2)) if attack_potion_time_left > 0.0 else 0)
+				var outgoing_damage := attack_damage + (maxi(1, roundi(float(maxAttack) * 0.2)) if attack_potion_time_left > 0.0 else 0)
 				if randf() < crit_rate:
 					outgoing_damage *= 2
 				target_player.call("takeMeleeDamage", outgoing_damage, self)
 				attack_timer = ATTACK_COOLDOWN
 			elif target_player.has_method("takeDamage"):
-				target_player.takeDamage(ATTACK_DAMAGE, global_position)
+				target_player.takeDamage(attack_damage, global_position)
 			attack_timer = ATTACK_COOLDOWN
 
 func takeDamage(damage: int, attackerGlobalPos: Vector2, knockback_force: float = KNOCKBACK_FORCE, bypass_shield: bool = false) -> void:
@@ -222,7 +334,7 @@ func apply_spell(element: String, power: float, reach: float, attackerGlobalPos:
 	var spell_power := maxf(power, 0.1) * maxf(reach, 0.1)
 	match element:
 		"heal":
-			health = mini(MAX_HEALTH, health + maxi(1, roundi(30.0 * spell_power)))
+			health = mini(max_health, health + maxi(1, roundi(30.0 * spell_power)))
 			enemyHealthBar.value = health
 			SPELL_VFX.spawn(get_tree().current_scene, "heal", global_position, 1.5)
 			_flash_hit(Color.LIME_GREEN)
@@ -257,7 +369,7 @@ func apply_potion(item_id: String) -> void:
 		return
 	match item_id:
 		"potion_healing":
-			health = mini(MAX_HEALTH, health + maxi(1, roundi(float(MAX_HEALTH) * 0.2)))
+			health = mini(max_health, health + maxi(1, roundi(float(max_health) * 0.2)))
 			enemyHealthBar.value = health
 			SPELL_VFX.spawn(get_tree().current_scene, "heal", global_position, 1.2)
 		"potion_defence":
@@ -311,10 +423,14 @@ func _process_spell_status(delta: float) -> void:
 func die() -> void:
 	isAlive = false
 	velocity = Vector2.ZERO
+	if is_boss and bossDetectionArea != null:
+		bossDetectionArea.set_deferred("monitoring", false)
 	died.emit()
 	var current_scene := get_tree().current_scene
 	if current_scene != null and current_scene.has_method("tutorial_enemy_defeated"):
 		current_scene.call("tutorial_enemy_defeated")
+	if is_boss and current_scene != null and current_scene.has_method("show_boss_victory"):
+		current_scene.call("show_boss_victory")
 	
 	#disable collisions and hide health bar
 	enemyTutorialShape.set_deferred("disabled", true)

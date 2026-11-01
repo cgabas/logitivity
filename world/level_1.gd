@@ -23,6 +23,7 @@ extends Node2D
 @onready var tutorialEnemy: CharacterBody2D = $TutorialArea/step1/enemyTutorial
 @onready var attackTutorialLabel: Label = $TutorialArea/step1/Label
 var potionTutorialEnemy: CharacterBody2D = null
+var boss_victory_screen: CanvasLayer = null
 
 #true = Mage, false = Warrior, null = None selected
 var selectClassType: Variant = null
@@ -32,6 +33,7 @@ const WARRIOR_ORB_PROMPT := "Choose the Warrior orb.\nPress E / Tap A to choose.
 const MAGE_ORB_PROMPT := "Choose the Mage orb.\nPress E / Tap A to choose."
 
 func _ready() -> void:
+	_clear_tutorial_room_barriers()
 	# Keep the warrior skill menu outside the confirmation layer, which is hidden after class selection.
 	skillSelector.reparent(self)
 	# Center the chest in the tutorial room using the tutorial area's bounds.
@@ -96,6 +98,31 @@ func _ready() -> void:
 	elif tutorial_stage in ["potion_select", "potion_drink_select"]:
 		call_deferred("_open_tutorial_potion_inventory")
 
+func _clear_tutorial_room_barriers() -> void:
+	var barrier_layer := get_node_or_null("Barrier") as TileMapLayer
+	var room_shape := tutorArea.get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if barrier_layer == null or room_shape == null or not room_shape.shape is RectangleShape2D:
+		return
+	var room_center := tutorArea.to_global(room_shape.position)
+	var clear_half_size: Vector2 = (room_shape.shape as RectangleShape2D).size * 0.5 - Vector2(48.0, 48.0)
+	if clear_half_size.x <= 0.0 or clear_half_size.y <= 0.0:
+		return
+	for cell in barrier_layer.get_used_cells():
+		var tile_data := barrier_layer.get_cell_tile_data(cell)
+		if tile_data == null:
+			continue
+		var has_collision := false
+		for physics_layer in range(barrier_layer.tile_set.get_physics_layers_count()):
+			if tile_data.get_collision_polygons_count(physics_layer) > 0:
+				has_collision = true
+				break
+		if not has_collision:
+			continue
+		var tile_center := barrier_layer.to_global(barrier_layer.map_to_local(cell))
+		var room_offset := tile_center - room_center
+		if absf(room_offset.x) < clear_half_size.x and absf(room_offset.y) < clear_half_size.y:
+			barrier_layer.erase_cell(cell)
+
 func _physics_process(_delta: float) -> void:
 	#open confirmation popup when pressing interact ("player_do") near an orb
 	if Input.is_action_just_pressed("player_do") and selectClassType != null and tutorial_stage == "move_to_orb":
@@ -121,26 +148,33 @@ func _update_mobile_action_buttons() -> void:
 	var actions := mobile.get_node_or_null("CanvasLayer")
 	if actions == null:
 		return
-	var touch_enabled := GlobalInputDetection.inputType() != 0
+	var touch_enabled: bool = GlobalInputDetection.inputType() != 0
 	var class_interaction_ready := tutorial_stage != "move_to_orb" or selectClassType != null
 	var combat_ready := tutorial_stage in ["attack", "fight", "potion_throw", "complete"]
+	var potion_tutorial_ready: bool = tutorial_stage == "potion_throw" or SaveManager.data.get("flags", {}).get("isTutorialDone", false) == true
 	var button_a := actions.get_node_or_null("buttonA") as TouchScreenButton
 	var button_b := actions.get_node_or_null("buttonB") as TouchScreenButton
+	var button_potion := actions.get_node_or_null("buttonPotion") as TouchScreenButton
 	var button_skill := actions.get_node_or_null("buttonSkill") as TouchScreenButton
 	var has_warrior_skill: bool = SaveManager.data.get("flags", {}).get("isFromHogward") == false and player.has_method("_has_warrior_skill_unlocked") and player.call("_has_warrior_skill_unlocked") == true
 	if button_a != null:
 		button_a.visible = touch_enabled and class_interaction_ready
 	if button_b != null:
 		button_b.visible = touch_enabled and combat_ready
+	if button_potion != null:
+		button_potion.visible = touch_enabled and potion_tutorial_ready
 	if button_skill != null:
 		button_skill.visible = touch_enabled and has_warrior_skill and tutorial_stage != "move_to_orb"
 	var a_label := actions.get_node_or_null("Label2") as Label
 	var b_label := actions.get_node_or_null("Label") as Label
+	var potion_label := actions.get_node_or_null("Label3") as Label
 	var skill_label := actions.get_node_or_null("SkillLabel") as Label
 	if a_label != null:
 		a_label.visible = touch_enabled and class_interaction_ready
 	if b_label != null:
 		b_label.visible = touch_enabled and combat_ready
+	if potion_label != null:
+		potion_label.visible = touch_enabled and potion_tutorial_ready
 	if skill_label != null:
 		skill_label.visible = touch_enabled and has_warrior_skill and tutorial_stage != "move_to_orb"
 
@@ -164,7 +198,7 @@ func _update_attack_tutorial_label() -> void:
 		attackTutorialLabel.text = "Select the Poison Potion in your inventory."
 		return
 	if tutorial_stage == "potion_throw":
-		attackTutorialLabel.text = "Hold B, aim with the joystick, then release to throw." if GlobalInputDetection.inputType() != 0 else "Hold %s, aim with the mouse, then release to throw." % _get_attack_key_name()
+		attackTutorialLabel.text = "Hold P, pull with the joystick, then release to throw." if GlobalInputDetection.inputType() != 0 else "Hold %s, pull with the mouse, then release to throw." % _get_potion_throw_key_name()
 		return
 	if tutorial_stage == "potion_poison_wait":
 		attackTutorialLabel.text = "Poison is working. Keep your distance until the goblin falls."
@@ -210,6 +244,16 @@ func _get_attack_key_name() -> String:
 				return key_name.to_upper()
 	return "ATTACK"
 
+func _get_potion_throw_key_name() -> String:
+	for action_event in InputMap.action_get_events("player_throw_potion"):
+		if action_event is InputEventKey:
+			var key_event := action_event as InputEventKey
+			var key_code := key_event.physical_keycode if key_event.physical_keycode != KEY_NONE else key_event.keycode
+			var key_name := OS.get_keycode_string(key_code)
+			if not key_name.is_empty():
+				return key_name.to_upper()
+	return "P"
+
 #========================================
 #               FUNCTIONS
 #========================================
@@ -217,9 +261,15 @@ func _set_tutorial_stage(stage: String) -> void:
 	tutorial_stage = stage
 	SaveManager.data["flags"]["tutorial_stage"] = stage
 	SaveManager.saveGame()
+	if stage == "complete":
+		door.visible = false
+		door.collision_enabled = false
 	_setup_tutorial_stage()
 
 func _setup_tutorial_stage() -> void:
+	if tutorial_stage == "complete":
+		door.visible = false
+		door.collision_enabled = false
 	var active := tutorial_stage != "complete"
 	attackTutorialLabel.visible = active and tutorial_stage != "move_to_orb"
 	var enemy_active := tutorial_stage in ["fight", "open_chest", "skill_choice"]
@@ -335,6 +385,59 @@ func tutorial_enemy_defeated() -> void:
 	elif tutorial_stage == "potion_poison_wait":
 		_set_tutorial_stage("potion_drink_select")
 		call_deferred("_open_tutorial_potion_inventory")
+
+func show_boss_victory() -> void:
+	if is_instance_valid(boss_victory_screen):
+		return
+	get_tree().paused = true
+	boss_victory_screen = CanvasLayer.new()
+	boss_victory_screen.name = "BossVictoryScreen"
+	boss_victory_screen.layer = 100
+	boss_victory_screen.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(boss_victory_screen)
+
+	var screen := Control.new()
+	screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	screen.mouse_filter = Control.MOUSE_FILTER_STOP
+	boss_victory_screen.add_child(screen)
+
+	var background := ColorRect.new()
+	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	background.color = Color(1.0, 1.0, 1.0, 0.0)
+	background.mouse_filter = Control.MOUSE_FILTER_STOP
+	screen.add_child(background)
+
+	var layout := VBoxContainer.new()
+	layout.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	layout.position = Vector2(-260.0, -70.0)
+	layout.size = Vector2(520.0, 140.0)
+	layout.alignment = BoxContainer.ALIGNMENT_CENTER
+	layout.add_theme_constant_override("separation", 28)
+	screen.add_child(layout)
+
+	var title := Label.new()
+	title.text = "To be continued..."
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_color_override("font_color", Color.BLACK)
+	title.add_theme_font_size_override("font_size", 48)
+	layout.add_child(title)
+
+	var menu_button := Button.new()
+	menu_button.text = "Main Menu"
+	menu_button.custom_minimum_size = Vector2(240.0, 64.0)
+	menu_button.add_theme_color_override("font_color", Color.BLACK)
+	menu_button.add_theme_font_size_override("font_size", 24)
+	menu_button.pressed.connect(_return_to_main_menu)
+	layout.add_child(menu_button)
+	menu_button.grab_focus()
+
+	var fade := create_tween()
+	fade.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	fade.tween_property(background, "color", Color.WHITE, 0.55)
+
+func _return_to_main_menu() -> void:
+	get_tree().paused = false
+	get_tree().change_scene_to_file("res://UI/mainmenu.tscn")
 
 func _on_tutorial_chest_closed() -> void:
 	if tutorial_stage == "open_chest":

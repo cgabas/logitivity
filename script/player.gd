@@ -12,6 +12,9 @@ const BARRIER_DAMAGE_MULTIPLIER: float = 0.8
 const WIND_PUSH_DECELERATION: float = 1100.0
 const POTION_THROW_SCRIPT := preload("res://script/potion_throw.gd")
 const POTION_AIM_INDICATOR_SCRIPT := preload("res://script/potion_aim_indicator.gd")
+const POTION_MIN_THROW_DISTANCE: float = 96.0
+const POTION_MAX_THROW_DISTANCE: float = 360.0
+const POTION_MAX_PULL_DISTANCE: float = 180.0
 @export var mana_regen_per_second: float = 3.0
 
 # --- CORE VARIABLES ---
@@ -36,6 +39,8 @@ var selected_potion_id: String = ""
 var potion_hold_active: bool = false
 var mobile_potion_action: bool = false
 var potion_aim_direction: Vector2 = Vector2.DOWN
+var potion_throw_distance: float = POTION_MIN_THROW_DISTANCE
+var potion_mouse_pull_origin: Vector2 = Vector2.ZERO
 var potion_aim_indicator: Node2D = null
 var recordLastDirection: Vector2 = Vector2.DOWN
 var itemsInTouch: int = 0
@@ -210,6 +215,7 @@ func playerMovementFunction(delta: float) -> void:
 	var tutorial_stage := str(SaveManager.data.get("flags", {}).get("tutorial_stage", "complete"))
 	var combat_allowed: bool = SaveManager.data.get("flags", {}).get("isTutorialDone", false) == true or tutorial_stage in ["attack", "fight", "potion_finish", "potion_throw", "potion_poison_wait", "potion_drink_select", "potion_drink"]
 	
+	# --test--
 	if is_mage:
 		# === MAGE CONTROLS ===
 		if Input.is_action_just_pressed("player_attack") and combat_allowed:
@@ -298,6 +304,8 @@ func _begin_potion_action() -> void:
 		return
 	potion_hold_active = true
 	potion_aim_direction = recordLastDirection
+	potion_throw_distance = POTION_MIN_THROW_DISTANCE
+	potion_mouse_pull_origin = get_global_mouse_position()
 	potion_aim_indicator = Node2D.new()
 	potion_aim_indicator.name = "PotionAimIndicator"
 	potion_aim_indicator.set_script(POTION_AIM_INDICATOR_SCRIPT)
@@ -313,19 +321,20 @@ func _end_potion_action() -> void:
 		potion_aim_indicator.queue_free()
 	potion_aim_indicator = null
 	if has_selected_potion():
-		_throw_selected_potion(potion_aim_direction)
+		_throw_selected_potion(potion_aim_direction, potion_throw_distance)
 
 func _update_potion_aim() -> void:
+	var pull_vector := Vector2.ZERO
 	if GlobalInputDetection.inputType() == 0:
-		var mouse_vector := get_global_mouse_position() - global_position
-		if mouse_vector.length_squared() > 25.0:
-			potion_aim_direction = mouse_vector.normalized()
+		pull_vector = get_global_mouse_position() - potion_mouse_pull_origin
 	else:
-		var joystick_vector := Input.get_vector("move_left", "move_right", "move_up", "move_down")
-		if joystick_vector.length_squared() > 0.01:
-			potion_aim_direction = joystick_vector.normalized()
+		pull_vector = Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	if pull_vector.length_squared() > 0.0001:
+		var pull_strength := clampf(pull_vector.length() / POTION_MAX_PULL_DISTANCE, 0.0, 1.0)
+		potion_aim_direction = -pull_vector.normalized()
+		potion_throw_distance = lerpf(POTION_MIN_THROW_DISTANCE, POTION_MAX_THROW_DISTANCE, pull_strength)
 	if is_instance_valid(potion_aim_indicator):
-		potion_aim_indicator.call("set_direction", potion_aim_direction)
+		potion_aim_indicator.call("set_aim", potion_aim_direction, potion_throw_distance)
 
 func _drink_selected_potion() -> void:
 	var potion_id := selected_potion_id
@@ -339,14 +348,14 @@ func _can_throw_selected_potion() -> bool:
 	var tutorial_stage := str(SaveManager.data.get("flags", {}).get("tutorial_stage", "complete"))
 	return tutorial_stage not in ["potion_select", "potion_poison_wait", "potion_drink_select", "potion_drink"]
 
-func _throw_selected_potion(aim_direction: Vector2) -> void:
+func _throw_selected_potion(aim_direction: Vector2, throw_distance: float) -> void:
 	var potion_id := selected_potion_id
 	if not _consume_inventory_potion(potion_id):
 		return
 	var potion := Node2D.new()
 	potion.set_script(POTION_THROW_SCRIPT)
 	potion.global_position = global_position
-	potion.call("setup", potion_id, aim_direction)
+	potion.call("setup", potion_id, aim_direction, throw_distance)
 	get_tree().current_scene.add_child(potion)
 
 func return_potion_to_inventory(item_id: String) -> void:
