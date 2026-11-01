@@ -28,16 +28,37 @@ var potionTutorialEnemy: CharacterBody2D = null
 var selectClassType: Variant = null
 var tutorial_stage := "move_to_orb"
 var mage_tutorial_spells: Array[String] = []
+var hall_enemy_template: CharacterBody2D = null
+var hall_spawn_timer: float = 0.0
+var hall_spawn_count: int = 0
+var hall_boss: CharacterBody2D = null
+var hall_boss_spawned: bool = false
+var hall_start_y: float = 0.0
+var hall_end_y: float = 0.0
+var hall_center_x: float = 0.0
+var hall_half_width: float = 304.0
+var hall_boss_room_half_width: float = 496.0
+var hall_boss_room_depth: float = 896.0
 const WARRIOR_ORB_PROMPT := "Choose the Warrior orb.\nPress E / Tap A to choose."
 const MAGE_ORB_PROMPT := "Choose the Mage orb.\nPress E / Tap A to choose."
 
 func _ready() -> void:
 	# Keep the warrior skill menu outside the confirmation layer, which is hidden after class selection.
 	skillSelector.reparent(self)
+	if is_instance_valid(tutorialEnemy):
+		hall_enemy_template = tutorialEnemy.duplicate() as CharacterBody2D
+		if hall_enemy_template != null:
+			hall_enemy_template.name = "HallGoblinTemplate"
+			hall_enemy_template.set("target_player", null)
+			hall_enemy_template.set("isAlive", true)
+			hall_enemy_template.set("health", 100)
 	# Center the chest in the tutorial room using the tutorial area's bounds.
 	var room_bounds := tutorArea.get_node_or_null("CollisionShape2D") as CollisionShape2D
 	if room_bounds != null:
 		chest.position = tutorArea.position + room_bounds.position
+		hall_center_x = room_bounds.global_position.x
+		hall_start_y = room_bounds.global_position.y + room_bounds.shape.get_rect().size.y * 0.5
+		hall_end_y = hall_start_y + 4200.0
 		# Keep the default tutorial enemy beside the chest while preserving saved positions.
 		var current_scene := get_tree().current_scene
 		var saved_enemies: Variant = SaveManager.data.get("enemies", {})
@@ -45,6 +66,7 @@ func _ready() -> void:
 			var enemy_key := current_scene.scene_file_path + "::" + str(current_scene.get_path_to(tutorialEnemy))
 			if not saved_enemies.has(enemy_key):
 				tutorialEnemy.position = chest.position + Vector2(180.0, 0.0)
+	_build_hall_and_boss_room()
 	_update_attack_tutorial_label()
 	var flags: Dictionary = SaveManager.data.get("flags", {})
 	tutorial_stage = str(flags.get("tutorial_stage", "move_to_orb"))
@@ -103,13 +125,152 @@ func _physics_process(_delta: float) -> void:
 		windowContentMsgWarrior.visible = (selectClassType == false)
 		showConfirmationPopup(true)
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	_update_attack_tutorial_label()
 	_update_mobile_action_buttons()
 	#track player position in SaveManager while moving
 	if player.velocity != Vector2.ZERO:
 		SaveManager.data["player"]["position"]["x"] = player.position.x
 		SaveManager.data["player"]["position"]["y"] = player.position.y
+	_update_hall_encounters(delta)
+
+func _build_hall_and_boss_room() -> void:
+	if hall_start_y <= 0.0:
+		return
+	var source_floor := get_node_or_null("Floor") as TileMapLayer
+	if source_floor == null or source_floor.tile_set == null:
+		return
+	var floor_layer := TileMapLayer.new()
+	floor_layer.name = "CombatHallFloor"
+	floor_layer.tile_set = source_floor.tile_set
+	floor_layer.z_index = -1
+	add_child(floor_layer)
+	var tile_size := source_floor.tile_set.tile_size
+	var hall_left := hall_center_x - hall_half_width
+	var hall_right := hall_center_x + hall_half_width
+	var floor_top := hall_start_y - float(tile_size.y)
+	var floor_bottom := hall_end_y + hall_boss_room_depth
+	var tile_y_start := floori(floor_top / float(tile_size.y))
+	var tile_y_end := ceili(floor_bottom / float(tile_size.y))
+	for y in range(tile_y_start, tile_y_end):
+		var left_edge := hall_left
+		var right_edge := hall_right
+		if y * tile_size.y >= hall_end_y:
+			left_edge = hall_center_x - hall_boss_room_half_width
+			right_edge = hall_center_x + hall_boss_room_half_width
+		var row_left := floori(left_edge / float(tile_size.x))
+		var row_right := ceili(right_edge / float(tile_size.x))
+		for x in range(row_left, row_right):
+			floor_layer.set_cell(Vector2i(x, y), 0, Vector2i.ZERO)
+
+	_add_hall_wall("HallWestWall", Vector2(hall_center_x - hall_half_width, (hall_start_y + hall_end_y) * 0.5), Vector2(20.0, hall_end_y - hall_start_y))
+	_add_hall_wall("HallEastWall", Vector2(hall_center_x + hall_half_width, (hall_start_y + hall_end_y) * 0.5), Vector2(20.0, hall_end_y - hall_start_y))
+	var boss_room_center_y := hall_end_y + hall_boss_room_depth * 0.5
+	_add_hall_wall("BossWestWall", Vector2(hall_center_x - hall_boss_room_half_width, boss_room_center_y), Vector2(20.0, hall_boss_room_depth))
+	_add_hall_wall("BossEastWall", Vector2(hall_center_x + hall_boss_room_half_width, boss_room_center_y), Vector2(20.0, hall_boss_room_depth))
+	_add_hall_wall("BossSouthWall", Vector2(hall_center_x, hall_end_y + hall_boss_room_depth), Vector2(hall_boss_room_half_width * 2.0, 20.0))
+
+func _add_hall_wall(wall_name: String, wall_position: Vector2, wall_size: Vector2) -> void:
+	var wall := StaticBody2D.new()
+	wall.name = wall_name
+	wall.collision_layer = 1
+	wall.collision_mask = 1
+	wall.position = wall_position
+	var collision := CollisionShape2D.new()
+	var rectangle := RectangleShape2D.new()
+	rectangle.size = wall_size
+	collision.shape = rectangle
+	wall.add_child(collision)
+	var visual := Polygon2D.new()
+	visual.polygon = PackedVector2Array([Vector2(-wall_size.x * 0.5, -wall_size.y * 0.5), Vector2(wall_size.x * 0.5, -wall_size.y * 0.5), Vector2(wall_size.x * 0.5, wall_size.y * 0.5), Vector2(-wall_size.x * 0.5, wall_size.y * 0.5)])
+	visual.color = Color(0.16, 0.11, 0.12, 1.0)
+	wall.add_child(visual)
+	add_child(wall)
+
+func _update_hall_encounters(delta: float) -> void:
+	if not SaveManager.data.get("flags", {}).get("isTutorialDone", false) or hall_enemy_template == null:
+		return
+	var player_y := player.global_position.y
+	if player_y >= hall_start_y + 96.0 and player_y < hall_end_y - 96.0:
+		hall_spawn_timer -= delta
+		if hall_spawn_timer <= 0.0 and _alive_hall_goblin_count() < 3:
+			_spawn_hall_goblin()
+			hall_spawn_timer = 4.5
+	if player_y >= hall_end_y - 72.0 and not SaveManager.data.get("flags", {}).get("hall_boss_defeated", false):
+		_spawn_hall_boss()
+
+func _alive_hall_goblin_count() -> int:
+	var count := 0
+	for goblin in get_tree().get_nodes_in_group("hall_goblins"):
+		if is_instance_valid(goblin) and goblin.get("isAlive") == true:
+			count += 1
+	return count
+
+func _spawn_hall_goblin() -> void:
+	hall_spawn_count += 1
+	var goblin := hall_enemy_template.duplicate() as CharacterBody2D
+	if goblin == null:
+		return
+	goblin.name = "HallGoblin_%04d" % hall_spawn_count
+	goblin.set("is_giant_boss", false)
+	goblin.set("health_multiplier", 1.0)
+	goblin.set("damage_multiplier", 1.0)
+	goblin.set("movement_multiplier", 1.0)
+	goblin.set("isAlive", true)
+	goblin.set("health", 100)
+	goblin.set("target_player", null)
+	var facing: Vector2 = player.get("recordLastDirection")
+	var spawn_position := player.global_position - facing * 150.0 + Vector2(randf_range(-110.0, 110.0), 0.0)
+	spawn_position.x = clampf(spawn_position.x, hall_center_x - hall_half_width + 64.0, hall_center_x + hall_half_width - 64.0)
+	spawn_position.y = clampf(spawn_position.y, hall_start_y + 80.0, hall_end_y - 100.0)
+	goblin.global_position = spawn_position
+	add_child(goblin)
+	goblin.add_to_group("hall_goblins")
+	goblin.remove_from_group("Enemies")
+	_set_spawned_enemy_active(goblin, true)
+
+func _spawn_hall_boss() -> void:
+	if hall_boss_spawned or hall_enemy_template == null:
+		return
+	hall_boss_spawned = true
+	hall_boss = hall_enemy_template.duplicate() as CharacterBody2D
+	if hall_boss == null:
+		return
+	hall_boss.name = "HallBoss"
+	hall_boss.set("is_giant_boss", true)
+	hall_boss.set("health_multiplier", 10.0)
+	hall_boss.set("damage_multiplier", 10.0)
+	hall_boss.set("movement_multiplier", 1.0)
+	hall_boss.set("isAlive", true)
+	hall_boss.set("health", 1000)
+	hall_boss.set("target_player", null)
+	hall_boss.scale *= 2.0
+	hall_boss.global_position = Vector2(hall_center_x, hall_end_y + hall_boss_room_depth * 0.48)
+	add_child(hall_boss)
+	_set_spawned_enemy_active(hall_boss, true)
+	if hall_boss.has_signal("died"):
+		hall_boss.connect("died", _on_hall_boss_defeated, CONNECT_ONE_SHOT)
+
+func _set_spawned_enemy_active(enemy: CharacterBody2D, active: bool) -> void:
+	enemy.visible = active
+	enemy.set_physics_process(active)
+	var sprite := enemy.get_node_or_null("enemyTutorialSprite") as AnimatedSprite2D
+	if sprite != null:
+		sprite.modulate = Color.WHITE
+		sprite.play("idle")
+	for path in ["enemyTutorialShape", "enemyTutorialArea/enemyTutorialAreaShape"]:
+		var shape := enemy.get_node_or_null(path) as CollisionShape2D
+		if shape != null:
+			shape.set_deferred("disabled", not active)
+	var health_bar := enemy.get_node_or_null("enemyHealthBar") as TextureProgressBar
+	if health_bar != null:
+		health_bar.show()
+
+func _on_hall_boss_defeated() -> void:
+	var flags: Dictionary = SaveManager.data.get("flags", {})
+	flags["hall_boss_defeated"] = true
+	SaveManager.data["flags"] = flags
+	SaveManager.saveGame()
 
 func _update_mobile_action_buttons() -> void:
 	var view := player.get_node_or_null("playerView")
