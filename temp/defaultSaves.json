@@ -34,7 +34,6 @@
 	"flags": {
 		"isTutorialDone": false,
 		"tutorial_stage": "move_to_orb",
-		"isFromHogward": null,
-		"hall_boss_defeated": false
+		"isFromHogward": null
 	}
 }

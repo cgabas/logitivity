@@ -195,18 +195,6 @@ func playerMovementFunction(delta: float) -> void:
 		else:
 			playerBehaviourFunction()
 		
-	# A selected potion uses the normal attack button as a slingshot:
-	# hold to aim, then release to throw. Drinking remains on player_do.
-	if has_selected_potion():
-		if Input.is_action_just_pressed("player_attack") and _can_throw_selected_potion():
-			_begin_potion_action()
-		if Input.is_action_just_released("player_attack") and potion_hold_active and not mobile_potion_action:
-			_end_potion_action()
-		if potion_hold_active:
-			velocity = Vector2.ZERO
-			playerAnimationFunction(Vector2.ZERO)
-			return
-
 	# --- 2. CLASS-SPECIFIC ABILITIES ---
 	var is_mage: bool = (SaveManager.data["flags"]["isFromHogward"] == true)
 	var tutorial_stage := str(SaveManager.data.get("flags", {}).get("tutorial_stage", "complete"))
@@ -229,6 +217,20 @@ func playerMovementFunction(delta: float) -> void:
 			"uppercut":
 				performUppercut()
 				
+	# --- SEPARATED POTION THROW LOGIC FOR PC ---
+	# (You will need to map a new Input map action for this, e.g., "player_throw_potion")
+	if Input.is_action_just_pressed("player_throw_potion"):
+		if has_selected_potion() and _can_throw_selected_potion():
+			_begin_potion_action()
+			
+	if Input.is_action_just_released("player_throw_potion") and potion_hold_active:
+		_end_potion_action()
+		
+	if potion_hold_active:
+		velocity = Vector2.ZERO
+		playerAnimationFunction(Vector2.ZERO)
+		return
+		
 	var direction := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	var speed_multiplier := 1.2 if speed_potion_time_left > 0.0 else 1.0
 	velocity = direction * SPEED * speed_multiplier + wind_push_velocity
@@ -370,8 +372,8 @@ func _consume_inventory_potion(item_id: String) -> bool:
 			SaveManager.data["inventory"] = items
 			if not _inventory_has_potion(item_id):
 				selected_potion_id = ""
-			SaveManager.saveGame()
-			return true
+		SaveManager.saveGame()
+		return true
 	return false
 
 func apply_potion(item_id: String) -> void:

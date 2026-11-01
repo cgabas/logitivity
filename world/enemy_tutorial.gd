@@ -16,17 +16,8 @@ const WET_SPEED_MULTIPLIER := 0.45
 const WIND_KNOCKBACK_FORCE := 750.0
 const SPELL_VFX = preload("res://script/spell_vfx.gd")
 
-@export var health_multiplier: float = 1.0
-@export var damage_multiplier: float = 1.0
-@export var movement_multiplier: float = 1.0
-@export var is_giant_boss: bool = false
-
 var target_player: CharacterBody2D = null
 var health: int = MAX_HEALTH
-var max_health: int = MAX_HEALTH
-var attack_damage: int = ATTACK_DAMAGE
-var movement_speed: float = SPEED
-var attack_range: float = ATTACK_RANGE
 var defence: int = 0
 var maxDefence: int = 100
 var maxAttack: int = ATTACK_DAMAGE
@@ -57,19 +48,10 @@ var wet_time_left := 0.0
 func _ready() -> void:
 	add_to_group("Enemies")
 	add_to_group("enemies")
-	max_health = maxi(1, roundi(float(MAX_HEALTH) * maxf(health_multiplier, 0.1)))
-	attack_damage = maxi(1, roundi(float(ATTACK_DAMAGE) * maxf(damage_multiplier, 0.1)))
-	movement_speed = SPEED * maxf(movement_multiplier, 0.1)
-	attack_range = ATTACK_RANGE * (1.35 if is_giant_boss else 1.0)
 	var enemy_defaults: Dictionary = SaveManager.data.get("enemy_defaults", {})
 	maxDefence = maxi(0, int(enemy_defaults.get("maxDefence", 100)))
-	if is_giant_boss:
-		maxDefence *= 10
 	defence = maxi(0, int(enemy_defaults.get("defence", 0)))
 	maxAttack = maxi(1, int(enemy_defaults.get("maxAttack", ATTACK_DAMAGE)))
-	if is_giant_boss:
-		maxAttack *= 10
-		health = max_health
 	var saved_enemy: Dictionary = _get_saved_enemy_data()
 	if not saved_enemy.is_empty():
 		if saved_enemy.get("is_alive", true) != true:
@@ -78,7 +60,7 @@ func _ready() -> void:
 		var saved_position: Dictionary = saved_enemy.get("position", {})
 		if saved_position.has("x") and saved_position.has("y"):
 			global_position = Vector2(float(saved_position["x"]), float(saved_position["y"]))
-		health = clampi(int(saved_enemy.get("health", max_health)), 0, max_health)
+		health = clampi(int(saved_enemy.get("health", MAX_HEALTH)), 0, MAX_HEALTH)
 		shield_health = maxi(0, int(saved_enemy.get("shield_health", 0)))
 		defence = maxi(0, int(saved_enemy.get("defence", defence)))
 		attack_potion_time_left = maxf(0.0, float(saved_enemy.get("attack_potion_time_left", 0.0)))
@@ -95,7 +77,7 @@ func _ready() -> void:
 		wet_time_left = maxf(0.0, float(saved_enemy.get("wet_time_left", 0.0)))
 		if saved_enemy.has("facing_left"):
 			enemyTutorialSprite.flip_h = saved_enemy["facing_left"] == true
-	enemyHealthBar.max_value = max_health
+	enemyHealthBar.max_value = MAX_HEALTH
 	enemyHealthBar.value = health
 	enemyTutorialSprite.play("idle")
 	
@@ -170,11 +152,11 @@ func chaseAndAttack() -> void:
 		enemyTutorialSprite.flip_h = (direction.x < 0)
 	
 	#chase if outside attack reach
-	if distance_to_player > attack_range:
+	if distance_to_player > ATTACK_RANGE:
 		var speed_multiplier := WET_SPEED_MULTIPLIER if wet_time_left > 0.0 else 1.0
 		if speed_potion_time_left > 0.0:
 			speed_multiplier *= 1.2
-		velocity = direction * movement_speed * speed_multiplier
+		velocity = direction * SPEED * speed_multiplier
 		if enemyTutorialSprite.sprite_frames.has_animation("walk"):
 			enemyTutorialSprite.play("walk")
 		else:
@@ -189,13 +171,13 @@ func chaseAndAttack() -> void:
 				and target_player.call("is_melee_attack_blocked", self):
 				attack_timer = ATTACK_COOLDOWN
 			elif target_player.has_method("takeMeleeDamage"):
-				var outgoing_damage := attack_damage + (maxi(1, roundi(float(maxAttack) * 0.2)) if attack_potion_time_left > 0.0 else 0)
+				var outgoing_damage := ATTACK_DAMAGE + (maxi(1, roundi(float(maxAttack) * 0.2)) if attack_potion_time_left > 0.0 else 0)
 				if randf() < crit_rate:
 					outgoing_damage *= 2
 				target_player.call("takeMeleeDamage", outgoing_damage, self)
 				attack_timer = ATTACK_COOLDOWN
 			elif target_player.has_method("takeDamage"):
-				target_player.takeDamage(attack_damage, global_position)
+				target_player.takeDamage(ATTACK_DAMAGE, global_position)
 			attack_timer = ATTACK_COOLDOWN
 
 func takeDamage(damage: int, attackerGlobalPos: Vector2, knockback_force: float = KNOCKBACK_FORCE, bypass_shield: bool = false) -> void:
@@ -240,7 +222,7 @@ func apply_spell(element: String, power: float, reach: float, attackerGlobalPos:
 	var spell_power := maxf(power, 0.1) * maxf(reach, 0.1)
 	match element:
 		"heal":
-			health = mini(max_health, health + maxi(1, roundi(30.0 * spell_power)))
+			health = mini(MAX_HEALTH, health + maxi(1, roundi(30.0 * spell_power)))
 			enemyHealthBar.value = health
 			SPELL_VFX.spawn(get_tree().current_scene, "heal", global_position, 1.5)
 			_flash_hit(Color.LIME_GREEN)
@@ -275,7 +257,7 @@ func apply_potion(item_id: String) -> void:
 		return
 	match item_id:
 		"potion_healing":
-			health = mini(max_health, health + maxi(1, roundi(float(max_health) * 0.2)))
+			health = mini(MAX_HEALTH, health + maxi(1, roundi(float(MAX_HEALTH) * 0.2)))
 			enemyHealthBar.value = health
 			SPELL_VFX.spawn(get_tree().current_scene, "heal", global_position, 1.2)
 		"potion_defence":
@@ -361,7 +343,6 @@ func get_save_data() -> Dictionary:
 	return {
 		"is_alive": isAlive,
 		"health": health,
-		"max_health": max_health,
 		"position": {"x": global_position.x, "y": global_position.y},
 		"shield_health": shield_health,
 		"defence": defence,
