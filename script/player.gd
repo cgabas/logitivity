@@ -105,6 +105,7 @@ func _ready() -> void:
 	if katanaSprite != null:
 		katanaBaseScale = katanaSprite.scale
 		katanaSprite.animation_finished.connect(_on_katana_anim_finished)
+	# --- CONNECT BUTTON B (BASIC ATTACK) ---
 	var mobile_attack_button := get_node_or_null("playerView/MobileControl/CanvasLayer/buttonB") as TouchScreenButton
 	if mobile_attack_button != null:
 		mobile_attack_button.action = &""
@@ -112,6 +113,15 @@ func _ready() -> void:
 			mobile_attack_button.pressed.connect(_on_mobile_attack_pressed)
 		if not mobile_attack_button.released.is_connected(_on_mobile_attack_released):
 			mobile_attack_button.released.connect(_on_mobile_attack_released)
+
+	# --- CONNECT BUTTON P (POTION THROW) ---
+	var mobile_potion_button := get_node_or_null("playerView/MobileControl/CanvasLayer/buttonPotion") as TouchScreenButton
+	if mobile_potion_button != null:
+		mobile_potion_button.action = &""
+		if not mobile_potion_button.pressed.is_connected(_on_mobile_potion_pressed):
+			mobile_potion_button.pressed.connect(_on_mobile_potion_pressed)
+		if not mobile_potion_button.released.is_connected(_on_mobile_potion_released):
+			mobile_potion_button.released.connect(_on_mobile_potion_released)
 	
 	#switch class outfit based on class
 	if SaveManager.data["flags"]["isFromHogward"] != null:
@@ -198,7 +208,7 @@ func playerMovementFunction(delta: float) -> void:
 	# --- 2. CLASS-SPECIFIC ABILITIES ---
 	var is_mage: bool = (SaveManager.data["flags"]["isFromHogward"] == true)
 	var tutorial_stage := str(SaveManager.data.get("flags", {}).get("tutorial_stage", "complete"))
-	var combat_allowed: bool = SaveManager.data.get("flags", {}).get("isTutorialDone", false) == true or tutorial_stage in ["attack", "fight", "potion_finish"]
+	var combat_allowed: bool = SaveManager.data.get("flags", {}).get("isTutorialDone", false) == true or tutorial_stage in ["attack", "fight", "potion_finish", "potion_throw", "potion_poison_wait", "potion_drink_select", "potion_drink"]
 	
 	if is_mage:
 		# === MAGE CONTROLS ===
@@ -255,20 +265,30 @@ func select_potion(item_id: String) -> void:
 	else:
 		selected_potion_id = ""
 
+# --- PURE ATTACK BUTTON (e.g. Button B) ---
 func _on_mobile_attack_pressed() -> void:
+	if SaveManager.data.get("flags", {}).get("isFromHogward") != true:
+		var flags: Dictionary = SaveManager.data.get("flags", {})
+		var stage := str(flags.get("tutorial_stage", "complete"))
+		# ADDED potion tutorial stages to the allowed combat list
+		if flags.get("isTutorialDone", false) == true or stage in ["attack", "fight", "potion_finish", "potion_throw", "potion_poison_wait", "potion_drink_select", "potion_drink"]:
+			playerAttackFunction()
+
+func _on_mobile_attack_released() -> void:
+	pass # Attack doesn't need a release action unless you want to add charge attacks later
+
+
+# --- NEW DEDICATED POTION BUTTON ---
+# Connect this to your new Mobile Potion Button's 'pressed' signal
+func _on_mobile_potion_pressed() -> void:
 	if has_selected_potion():
 		if not _can_throw_selected_potion():
 			return
 		mobile_potion_action = true
 		_begin_potion_action()
-		return
-	if SaveManager.data.get("flags", {}).get("isFromHogward") != true:
-		var flags: Dictionary = SaveManager.data.get("flags", {})
-		var stage := str(flags.get("tutorial_stage", "complete"))
-		if flags.get("isTutorialDone", false) == true or stage in ["attack", "fight", "potion_finish"]:
-			playerAttackFunction()
 
-func _on_mobile_attack_released() -> void:
+# Connect this to your new Mobile Potion Button's 'released' signal
+func _on_mobile_potion_released() -> void:
 	if mobile_potion_action:
 		mobile_potion_action = false
 		_end_potion_action()

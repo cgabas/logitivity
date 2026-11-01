@@ -1,9 +1,9 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://c7lpubjy06kpc"]
 
-[ext_resource type="Texture2D" path="res://UI/texture/hint_box.png" id="1_6k6im"]
-[ext_resource type="Script" path="res://UI/canvas_layer.gd" id="1_7nup5"]
-[ext_resource type="Texture2D" path="res://UI/texture/hint_box_pressed.png" id="2_7nup5"]
-[ext_resource type="FontFile" path="res://UI/fonts_setting/VCR.ttf" id="3_8372e"]
+[ext_resource type="Texture2D" uid="uid://b3m4un2d2sgcx" path="res://UI/texture/hint_box.png" id="1_6k6im"]
+[ext_resource type="Script" uid="uid://cqel5gbmdvgg3" path="res://UI/canvas_layer.gd" id="1_7nup5"]
+[ext_resource type="Texture2D" uid="uid://q4ei6r1fs4et" path="res://UI/texture/hint_box_pressed.png" id="2_7nup5"]
+[ext_resource type="FontFile" uid="uid://ce1jy480h71d0" path="res://UI/fonts_setting/VCR.ttf" id="3_8372e"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_yfx53"]
 size = Vector2(47, 47)
@@ -40,8 +40,8 @@ script = ExtResource("1_7nup5")
 
 [node name="buttonA" type="TouchScreenButton" parent="CanvasLayer" unique_id=329804260]
 texture_filter = 1
-position = Vector2(909, 331.00003)
-scale = Vector2(3.0, 3.0)
+position = Vector2(916, 282)
+scale = Vector2(3, 3)
 texture_normal = ExtResource("1_6k6im")
 texture_pressed = ExtResource("2_7nup5")
 shape = SubResource("RectangleShape2D_yfx53")
@@ -50,7 +50,7 @@ action = "player_do"
 [node name="buttonB" type="TouchScreenButton" parent="CanvasLayer" unique_id=1363294288]
 texture_filter = 1
 position = Vector2(714.00006, 448.00003)
-scale = Vector2(3.0, 3.0)
+scale = Vector2(3, 3)
 texture_normal = ExtResource("1_6k6im")
 texture_pressed = ExtResource("2_7nup5")
 shape = SubResource("RectangleShape2D_yfx53")
@@ -58,20 +58,48 @@ action = "player_attack"
 
 [node name="Label" type="Label" parent="CanvasLayer" unique_id=1285246014]
 texture_filter = 1
-offset_left = 786.0
-offset_top = 505.99994
-offset_right = 835.0
-offset_bottom = 578.99994
+offset_left = 793.0
+offset_top = 508.0
+offset_right = 842.0
+offset_bottom = 581.0
+text = "B"
+label_settings = SubResource("LabelSettings_yfx53")
+
+[node name="Label4" type="Label" parent="CanvasLayer" unique_id=1294836711]
+texture_filter = 1
+offset_left = 1578.0
+offset_top = 1017.0
+offset_right = 1627.0
+offset_bottom = 1090.0
 text = "B"
 label_settings = SubResource("LabelSettings_yfx53")
 
 [node name="Label2" type="Label" parent="CanvasLayer" unique_id=986830491]
 texture_filter = 1
-offset_left = 980.0
-offset_top = 387.0
-offset_right = 1018.0
-offset_bottom = 444.0
+offset_left = 989.0
+offset_top = 353.0
+offset_right = 1027.0
+offset_bottom = 410.0
 text = "A"
+label_settings = SubResource("LabelSettings_yfx53")
+
+[node name="buttonPotion" type="TouchScreenButton" parent="CanvasLayer" unique_id=194489487]
+texture_filter = 1
+position = Vector2(726, 258)
+scale = Vector2(3, 3)
+texture_normal = ExtResource("1_6k6im")
+texture_pressed = ExtResource("2_7nup5")
+shape = SubResource("RectangleShape2D_yfx53")
+action = "player_do"
+
+[node name="Label3" type="Label" parent="CanvasLayer" unique_id=1100865682]
+texture_filter = 1
+offset_left = 803.0
+offset_top = 326.0
+offset_right = 852.0
+offset_bottom = 443.0
+text = "P
+"
 label_settings = SubResource("LabelSettings_yfx53")
 
 [node name="buttonSkill" type="TouchScreenButton" parent="CanvasLayer" unique_id=1487866964]
