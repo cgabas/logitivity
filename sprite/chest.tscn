@@ -1,45 +1,70 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://bwcksehjydnwj"]
 
-[ext_resource type="Script" path="res://script/chest.gd" id="1_plyfp"]
-[ext_resource type="Texture2D" path="res://temporarySprite/ChestClosedimage.png" id="2_bdxih"]
-[ext_resource type="PackedScene" path="res://sprite/chest_ui.tscn" id="2_bf6ll"]
-[ext_resource type="Texture2D" path="res://temporarySprite/ChestOpenedImage.png" id="3_bf6ll"]
+[ext_resource type="Script" uid="uid://b1sv2xe37vdyp" path="res://script/player_inventory.gd" id="1_lcgbo"]
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_piduj"]
-atlas = ExtResource("2_bdxih")
-region = Rect2(0, 0, 800, 600)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kisqi"]
+bg_color = Color(1, 0, 0, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0, 0, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_u8jg1"]
-atlas = ExtResource("3_bf6ll")
-region = Rect2(0, 0, 800, 600)
+[node name="ChestUI" type="CanvasLayer" unique_id=798603506]
+process_mode = 3
+layer = 10
+script = ExtResource("1_lcgbo")
 
-[sub_resource type="SpriteFrames" id="SpriteFrames_6koat"]
-animations = [{
-"frames": [{
-"duration": 1.0,
-"texture": SubResource("AtlasTexture_piduj")
-}, {
-"duration": 1.0,
-"texture": SubResource("AtlasTexture_u8jg1")
-}],
-"loop": 1,
-"name": &"chestOpenClose",
-"speed": 5.0
-}]
+[node name="DimBackground" type="ColorRect" parent="." unique_id=988178673]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.5019608)
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_me04g"]
-radius = 80.0
+[node name="InventoryPanel" type="Panel" parent="." unique_id=1891510759]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 380.0
+offset_bottom = 280.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="Chest" type="Area2D" unique_id=532206450]
-script = ExtResource("1_plyfp")
-chest_ui = ExtResource("2_bf6ll")
+[node name="TitleLabel" type="Label" parent="InventoryPanel" unique_id=1625844994]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
 
-[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=2084390820]
-scale = Vector2(0.2, 0.2)
-sprite_frames = SubResource("SpriteFrames_6koat")
-animation = &"chestOpenClose"
+[node name="ItemGrid" type="GridContainer" parent="InventoryPanel" unique_id=1547297108]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+columns = 9
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1672845181]
-shape = SubResource("CircleShape2D_me04g")
+[node name="StatusLabel" type="Label" parent="InventoryPanel" unique_id=2046845371]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
 
-[node name="LootSpawnPoint" type="Marker2D" parent="." unique_id=770692462]
+[node name="CloseButton" type="Button" parent="InventoryPanel" unique_id=1092710221]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 18.0
+offset_bottom = 31.0
+mouse_filter = 1
+theme_override_styles/normal = SubResource("StyleBoxFlat_kisqi")
+text = "Close (X)"
+
+[connection signal="gui_input" from="DimBackground" to="." method="_on_dim_background_gui_input"]
