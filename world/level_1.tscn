@@ -1286,6 +1286,7 @@ size_flags_horizontal = 3
 theme_override_styles/separator = SubResource("StyleBoxEmpty_m0ick")
 
 [node name="skill_selector" parent="ClassConfirmCanv" unique_id=1139080847 instance=ExtResource("12_2dlxi")]
+visible = false
 
 [node name="TutorialArea" type="Node2D" parent="." unique_id=287388576]
 position = Vector2(2024.2136, 1110.2299)

@@ -1,5 +1,7 @@
 extends CharacterBody2D
 
+signal died
+
 const SPEED: float = 180.0
 const KNOCKBACK_FORCE: float = 250.0
 const ATTACK_RANGE: float = 80.0 #scaled collision shapes prevent the goblin getting closer than this
@@ -16,6 +18,14 @@ const SPELL_VFX = preload("res://script/spell_vfx.gd")
 
 var target_player: CharacterBody2D = null
 var health: int = MAX_HEALTH
+var defence: int = 0
+var maxDefence: int = 100
+var maxAttack: int = ATTACK_DAMAGE
+var attack_potion_time_left := 0.0
+var speed_potion_time_left := 0.0
+var crit_potion_time_left := 0.0
+var crit_rate := 0.0
+var crit_rate_before_potion := 0.0
 var isAlive: bool = true
 var knockback_velocity: Vector2 = Vector2.ZERO
 var attack_timer: float = 0.0
@@ -38,7 +48,36 @@ var wet_time_left := 0.0
 func _ready() -> void:
 	add_to_group("Enemies")
 	add_to_group("enemies")
-	enemyHealthBar.max_value = health
+	var enemy_defaults: Dictionary = SaveManager.data.get("enemy_defaults", {})
+	maxDefence = maxi(0, int(enemy_defaults.get("maxDefence", 100)))
+	defence = maxi(0, int(enemy_defaults.get("defence", 0)))
+	maxAttack = maxi(1, int(enemy_defaults.get("maxAttack", ATTACK_DAMAGE)))
+	var saved_enemy: Dictionary = _get_saved_enemy_data()
+	if not saved_enemy.is_empty():
+		if saved_enemy.get("is_alive", true) != true:
+			queue_free()
+			return
+		var saved_position: Dictionary = saved_enemy.get("position", {})
+		if saved_position.has("x") and saved_position.has("y"):
+			global_position = Vector2(float(saved_position["x"]), float(saved_position["y"]))
+		health = clampi(int(saved_enemy.get("health", MAX_HEALTH)), 0, MAX_HEALTH)
+		shield_health = maxi(0, int(saved_enemy.get("shield_health", 0)))
+		defence = maxi(0, int(saved_enemy.get("defence", defence)))
+		attack_potion_time_left = maxf(0.0, float(saved_enemy.get("attack_potion_time_left", 0.0)))
+		speed_potion_time_left = maxf(0.0, float(saved_enemy.get("speed_potion_time_left", 0.0)))
+		crit_potion_time_left = maxf(0.0, float(saved_enemy.get("crit_potion_time_left", 0.0)))
+		crit_rate = clampf(float(saved_enemy.get("crit_rate", 0.0)), 0.0, 1.0)
+		crit_rate_before_potion = float(saved_enemy.get("crit_rate_before_potion", crit_rate))
+		burn_time_left = maxf(0.0, float(saved_enemy.get("burn_time_left", 0.0)))
+		burn_tick_time = maxf(0.0, float(saved_enemy.get("burn_tick_time", 0.0)))
+		burn_damage_per_tick = maxi(0, int(saved_enemy.get("burn_damage_per_tick", 0)))
+		poison_time_left = maxf(0.0, float(saved_enemy.get("poison_time_left", 0.0)))
+		poison_tick_time = maxf(0.0, float(saved_enemy.get("poison_tick_time", 0.0)))
+		poison_damage_per_tick = maxi(0, int(saved_enemy.get("poison_damage_per_tick", 0)))
+		wet_time_left = maxf(0.0, float(saved_enemy.get("wet_time_left", 0.0)))
+		if saved_enemy.has("facing_left"):
+			enemyTutorialSprite.flip_h = saved_enemy["facing_left"] == true
+	enemyHealthBar.max_value = MAX_HEALTH
 	enemyHealthBar.value = health
 	enemyTutorialSprite.play("idle")
 	
@@ -52,6 +91,17 @@ func _physics_process(delta: float) -> void:
 	if not isAlive:
 		return
 	_process_spell_status(delta)
+	var current_scene := get_tree().current_scene
+	if current_scene != null and str(current_scene.get("tutorial_stage")) == "potion_poison_wait":
+		velocity = Vector2.ZERO
+		enemyTutorialSprite.play("idle")
+		move_and_slide()
+		return
+	attack_potion_time_left = maxf(0.0, attack_potion_time_left - delta)
+	speed_potion_time_left = maxf(0.0, speed_potion_time_left - delta)
+	crit_potion_time_left = maxf(0.0, crit_potion_time_left - delta)
+	if crit_potion_time_left == 0.0:
+		crit_rate = crit_rate_before_potion
 		
 	if attack_timer > 0.0:
 		attack_timer -= delta
@@ -104,6 +154,8 @@ func chaseAndAttack() -> void:
 	#chase if outside attack reach
 	if distance_to_player > ATTACK_RANGE:
 		var speed_multiplier := WET_SPEED_MULTIPLIER if wet_time_left > 0.0 else 1.0
+		if speed_potion_time_left > 0.0:
+			speed_multiplier *= 1.2
 		velocity = direction * SPEED * speed_multiplier
 		if enemyTutorialSprite.sprite_frames.has_animation("walk"):
 			enemyTutorialSprite.play("walk")
@@ -115,7 +167,16 @@ func chaseAndAttack() -> void:
 		enemyTutorialSprite.play("attack")
 		
 		if attack_timer <= 0.0:
-			if target_player.has_method("takeDamage"):
+			if target_player.has_method("is_melee_attack_blocked") \
+				and target_player.call("is_melee_attack_blocked", self):
+				attack_timer = ATTACK_COOLDOWN
+			elif target_player.has_method("takeMeleeDamage"):
+				var outgoing_damage := ATTACK_DAMAGE + (maxi(1, roundi(float(maxAttack) * 0.2)) if attack_potion_time_left > 0.0 else 0)
+				if randf() < crit_rate:
+					outgoing_damage *= 2
+				target_player.call("takeMeleeDamage", outgoing_damage, self)
+				attack_timer = ATTACK_COOLDOWN
+			elif target_player.has_method("takeDamage"):
 				target_player.takeDamage(ATTACK_DAMAGE, global_position)
 			attack_timer = ATTACK_COOLDOWN
 
@@ -123,6 +184,13 @@ func takeDamage(damage: int, attackerGlobalPos: Vector2, knockback_force: float 
 	if not isAlive:
 		return
 	var remaining_damage := maxi(damage, 0)
+	if not bypass_shield and defence > 0:
+		var defence_absorbed := mini(defence, remaining_damage)
+		defence -= defence_absorbed
+		remaining_damage -= defence_absorbed
+		if remaining_damage <= 0:
+			_flash_hit(Color.DODGER_BLUE)
+			return
 	if not bypass_shield and shield_health > 0:
 		var shield_absorbed := mini(shield_health, remaining_damage)
 		shield_health -= shield_absorbed
@@ -167,6 +235,10 @@ func apply_spell(element: String, power: float, reach: float, attackerGlobalPos:
 				burn_tick_time = DAMAGE_OVER_TIME_INTERVAL
 		"water":
 			SPELL_VFX.spawn(get_tree().current_scene, "water", global_position, 1.5)
+			# Water hits directly as well as applying its wet slow effect.
+			takeDamage(maxi(1, roundi(12.0 * spell_power)), attackerGlobalPos)
+			if not isAlive:
+				return
 			wet_time_left = maxf(wet_time_left, WET_DURATION)
 		"earth":
 			SPELL_VFX.spawn(get_tree().current_scene, "earth", global_position, 1.8, 4)
@@ -179,6 +251,36 @@ func apply_spell(element: String, power: float, reach: float, attackerGlobalPos:
 			poison_damage_per_tick = maxi(poison_damage_per_tick, maxi(1, roundi(5.0 * spell_power)))
 			poison_time_left = maxf(poison_time_left, POISON_DURATION)
 			poison_tick_time = DAMAGE_OVER_TIME_INTERVAL
+
+func apply_potion(item_id: String) -> void:
+	if not isAlive:
+		return
+	match item_id:
+		"potion_healing":
+			health = mini(MAX_HEALTH, health + maxi(1, roundi(float(MAX_HEALTH) * 0.2)))
+			enemyHealthBar.value = health
+			SPELL_VFX.spawn(get_tree().current_scene, "heal", global_position, 1.2)
+		"potion_defence":
+			defence = mini(maxDefence, defence + maxi(1, roundi(float(maxDefence) * 0.2)))
+			SPELL_VFX.spawn(get_tree().current_scene, "earth", global_position, 1.2)
+		"potion_speed":
+			speed_potion_time_left = 60.0
+			SPELL_VFX.spawn(get_tree().current_scene, "wind", global_position, 1.2)
+		"potion_attack":
+			attack_potion_time_left = 60.0
+			SPELL_VFX.spawn(get_tree().current_scene, "fire", global_position, 1.2)
+		"potion_crit":
+			if crit_potion_time_left <= 0.0:
+				crit_rate_before_potion = crit_rate
+			crit_rate = minf(1.0, crit_rate + randf_range(0.05, 0.20))
+			crit_potion_time_left = 60.0
+			SPELL_VFX.spawn(get_tree().current_scene, "wind", global_position, 1.2)
+		"potion_poison":
+			poison_damage_per_tick = maxi(poison_damage_per_tick, 5)
+			poison_time_left = maxf(poison_time_left, 20.0)
+			poison_tick_time = DAMAGE_OVER_TIME_INTERVAL
+			SPELL_VFX.spawn(get_tree().current_scene, "poison", global_position, 1.2)
+	SaveManager.saveGame()
 
 func _process_spell_status(delta: float) -> void:
 	if wet_time_left > 0.0:
@@ -209,11 +311,16 @@ func _process_spell_status(delta: float) -> void:
 func die() -> void:
 	isAlive = false
 	velocity = Vector2.ZERO
+	died.emit()
+	var current_scene := get_tree().current_scene
+	if current_scene != null and current_scene.has_method("tutorial_enemy_defeated"):
+		current_scene.call("tutorial_enemy_defeated")
 	
 	#disable collisions and hide health bar
 	enemyTutorialShape.set_deferred("disabled", true)
 	enemyTutorialAreaShape.set_deferred("disabled", true)
 	enemyHealthBar.hide()
+	SaveManager.saveGame()
 	
 	#force the "death" animation not to loop, play it, and freeze on the last frame
 	enemyTutorialSprite.sprite_frames.set_animation_loop("death", false)
@@ -223,3 +330,33 @@ func die() -> void:
 	var last_frame_idx := enemyTutorialSprite.sprite_frames.get_frame_count("death") - 1
 	enemyTutorialSprite.pause()
 	enemyTutorialSprite.frame = last_frame_idx
+
+func _get_saved_enemy_data() -> Dictionary:
+	var current_scene := get_tree().current_scene
+	if current_scene == null or not SaveManager.data.has("enemies"):
+		return {}
+	var enemy_key := current_scene.scene_file_path + "::" + str(current_scene.get_path_to(self))
+	var saved: Variant = SaveManager.data["enemies"].get(enemy_key, {})
+	return saved if saved is Dictionary else {}
+
+func get_save_data() -> Dictionary:
+	return {
+		"is_alive": isAlive,
+		"health": health,
+		"position": {"x": global_position.x, "y": global_position.y},
+		"shield_health": shield_health,
+		"defence": defence,
+		"attack_potion_time_left": attack_potion_time_left,
+		"speed_potion_time_left": speed_potion_time_left,
+		"crit_potion_time_left": crit_potion_time_left,
+		"crit_rate": crit_rate,
+		"crit_rate_before_potion": crit_rate_before_potion,
+		"facing_left": enemyTutorialSprite.flip_h,
+		"burn_time_left": burn_time_left,
+		"burn_tick_time": burn_tick_time,
+		"burn_damage_per_tick": burn_damage_per_tick,
+		"poison_time_left": poison_time_left,
+		"poison_tick_time": poison_tick_time,
+		"poison_damage_per_tick": poison_damage_per_tick,
+		"wet_time_left": wet_time_left
+	}

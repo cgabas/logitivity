@@ -8,6 +8,11 @@ const BUTTON_PRESSED := preload("res://UI/texture/button_pressed.png")
 const BUTTON_HOVER := preload("res://UI/texture/button_hover.png")
 const BUTTON_DISABLED := preload("res://UI/texture/button_disable.png")
 const BUTTON_FONT := preload("res://UI/fonts_setting/VCR.ttf")
+const TUTORIAL_FONT := preload("res://UI/fonts_setting/VCR.ttf")
+const TUTORIAL_SIGIL_FIRE := preload("res://UI/texture/canvas_sigil_fire.png")
+const TUTORIAL_SIGIL_EARTH := preload("res://UI/texture/canvas_sigil_earth.png")
+const TUTORIAL_MODIFIER := preload("res://UI/texture/canvas_modifier.png")
+const TUTORIAL_ARROW := preload("res://UI/texture/canvas_outline_arrow_up.png")
 const DRAWING_TIME_SCALE := 0.15
 var strokes: Array[PackedVector2Array] = []
 var current := PackedVector2Array()
@@ -142,10 +147,73 @@ func _draw() -> void:
 	draw_arc(c, r, 0, TAU, 96, guide, 2.0)
 	draw_arc(c, r * SpellParser.MOD_FRAC, 0, TAU, 96, guide, 2.0)
 	draw_arc(c, r * SpellParser.SIGIL_FRAC, 0, TAU, 96, guide, 2.0)
+	if _is_mage_tutorial_active():
+		_draw_mage_tutorial_guide(c, r)
 	for s in strokes:
 		_draw_stroke(s)
 	if drawing:
 		_draw_stroke(current)
+
+func _is_mage_tutorial_active() -> bool:
+	var flags: Dictionary = SaveManager.data.get("flags", {})
+	return flags.get("isFromHogward") == true \
+		and flags.get("isTutorialDone", false) != true \
+		and str(flags.get("tutorial_stage", "")) == "attack"
+
+func _draw_mage_tutorial_guide(center: Vector2, radius: float) -> void:
+	var next_sigil := "fire"
+	var current_scene := get_tree().current_scene
+	if current_scene != null and current_scene.has_method("get_tutorial_next_mage_sigil"):
+		next_sigil = str(current_scene.call("get_tutorial_next_mage_sigil"))
+
+	# Ghost sketches show the actual stroke locations the parser expects.
+	var ghost_color := Color(0.48, 0.88, 1.0, 0.22)
+	var inner_radius := radius * 0.25
+	var sigil_path := PackedVector2Array()
+	if next_sigil == "earth":
+		sigil_path = PackedVector2Array([
+			center + Vector2(-inner_radius, -inner_radius),
+			center + Vector2(inner_radius, -inner_radius),
+			center + Vector2(inner_radius, inner_radius),
+			center + Vector2(-inner_radius, inner_radius),
+			center + Vector2(-inner_radius, -inner_radius)
+		])
+	else:
+		sigil_path = PackedVector2Array([
+			center + Vector2(-inner_radius, inner_radius),
+			center + Vector2(0.0, -inner_radius),
+			center + Vector2(inner_radius, inner_radius),
+			center + Vector2(-inner_radius, inner_radius)
+		])
+	draw_polyline(sigil_path, ghost_color, 4.0, true)
+
+	var modifier_position := center + Vector2(0.0, -radius * 0.49)
+	draw_circle(modifier_position, 8.0, Color(0.92, 0.82, 0.38, 0.24))
+	draw_arc(modifier_position, 11.0, 0.0, TAU, 24, Color(1.0, 0.93, 0.56, 0.35), 2.0)
+
+	# One radial arrow in the outer band is the required outline example.
+	var arrow_tail := center + Vector2(radius * 0.91, 0.0)
+	var arrow_tip := center + Vector2(radius * 0.63, 0.0)
+	var arrow_color := Color(0.52, 0.87, 1.0, 0.24)
+	draw_line(arrow_tail, arrow_tip, arrow_color, 4.0, true)
+	draw_line(arrow_tip, arrow_tip + Vector2(radius * 0.1, -radius * 0.065), arrow_color, 4.0, true)
+	draw_line(arrow_tip, arrow_tip + Vector2(radius * 0.1, radius * 0.065), arrow_color, 4.0, true)
+
+	# The supplied component icons identify which ring each sketch belongs in.
+	var guide_panel := Rect2(Vector2(18.0, 124.0), Vector2(218.0, 270.0))
+	draw_rect(guide_panel, Color(0.035, 0.035, 0.09, 0.88), true)
+	draw_rect(guide_panel, Color(0.3, 0.73, 0.91, 0.75), false, 2.0)
+	draw_string(TUTORIAL_FONT, Vector2(32.0, 151.0), "SPELL GUIDE", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 16, Color(0.7, 0.93, 1.0))
+	var sigil_icon: Texture2D = TUTORIAL_SIGIL_EARTH if next_sigil == "earth" else TUTORIAL_SIGIL_FIRE
+	draw_texture_rect(sigil_icon, Rect2(Vector2(31.0, 164.0), Vector2(38.0, 38.0)), false, Color.WHITE)
+	draw_string(TUTORIAL_FONT, Vector2(78.0, 180.0), "CENTER: " + next_sigil.to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 13, Color.WHITE)
+	draw_string(TUTORIAL_FONT, Vector2(78.0, 197.0), "Draw its sigil here", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 11, Color(0.76, 0.81, 0.9))
+	draw_texture_rect(TUTORIAL_MODIFIER, Rect2(Vector2(31.0, 231.0), Vector2(38.0, 38.0)), false, Color.WHITE)
+	draw_string(TUTORIAL_FONT, Vector2(78.0, 246.0), "MIDDLE: 1 DOT", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 13, Color.WHITE)
+	draw_string(TUTORIAL_FONT, Vector2(78.0, 263.0), "One modifier only", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 11, Color(0.76, 0.81, 0.9))
+	draw_texture_rect(TUTORIAL_ARROW, Rect2(Vector2(31.0, 298.0), Vector2(38.0, 38.0)), false, Color.WHITE)
+	draw_string(TUTORIAL_FONT, Vector2(78.0, 313.0), "OUTER: ARROW", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 13, Color.WHITE)
+	draw_string(TUTORIAL_FONT, Vector2(78.0, 330.0), "Point toward center", HORIZONTAL_ALIGNMENT_LEFT, -1.0, 11, Color(0.76, 0.81, 0.9))
 
 func _draw_stroke(s: PackedVector2Array) -> void:
 	if s.size() > 1 and StrokeUtil.path_length(s) > 6.0:

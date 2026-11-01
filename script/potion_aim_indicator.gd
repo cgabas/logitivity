@@ -1,0 +1,26 @@
+extends Node2D
+
+const THROW_DISTANCE := 180.0
+const SPLASH_RADIUS := 72.0
+const DOT_SPACING := 16.0
+
+var direction := Vector2.DOWN
+
+func set_direction(value: Vector2) -> void:
+	if value.length_squared() > 0.01:
+		direction = value.normalized()
+	queue_redraw()
+
+func _draw() -> void:
+	for dot_index in range(1, int(THROW_DISTANCE / DOT_SPACING) + 1):
+		var progress := float(dot_index) * DOT_SPACING / THROW_DISTANCE
+		var point := direction * (THROW_DISTANCE * progress)
+		point.y -= sin(progress * PI) * 28.0
+		var radius := lerpf(2.2, 4.0, progress)
+		draw_circle(point, radius, Color(0.48, 0.9, 1.0, 0.78))
+	var landing := direction * THROW_DISTANCE
+	draw_circle(landing, SPLASH_RADIUS, Color(0.35, 0.78, 1.0, 0.11))
+	for arc_index in 12:
+		var start_angle := TAU * float(arc_index) / 12.0
+		draw_arc(landing, SPLASH_RADIUS, start_angle, start_angle + 0.27, 12, Color(0.6, 0.91, 1.0, 0.85), 2.0, true)
+	draw_circle(landing, 4.0, Color(0.8, 0.97, 1.0, 0.95))

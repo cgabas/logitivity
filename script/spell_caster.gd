@@ -32,9 +32,12 @@ func _ready() -> void:
 		_ensure_open_spell_action()
 		var mobile_spell_button := player.get_node_or_null("playerView/MobileControl/CanvasLayer/buttonB") as TouchScreenButton
 		if mobile_spell_button != null:
-			mobile_spell_button.action = "open_spell"
-			if not mobile_spell_button.pressed.is_connected(open_canvas):
-				mobile_spell_button.pressed.connect(open_canvas)
+			# TouchScreenButton emits its signal during the same touch event that the
+			# full-screen spell canvas listens to. Defer opening until that event ends
+			# and clear its action to prevent the same touch being routed twice.
+			mobile_spell_button.action = &""
+			if not mobile_spell_button.pressed.is_connected(_open_canvas_after_touch):
+				mobile_spell_button.pressed.connect(_open_canvas_after_touch)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if _is_mage() and canvas != null and event.is_action_pressed("open_spell") and not canvas.visible:
@@ -42,8 +45,20 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func open_canvas() -> void:
-	if _is_mage() and canvas != null and not canvas.visible:
+	var flags: Dictionary = SaveManager.data.get("flags", {})
+	var tutorial_stage := str(flags.get("tutorial_stage", "complete"))
+	var can_cast: bool = flags.get("isTutorialDone", false) == true or tutorial_stage in ["attack", "fight", "potion_finish"]
+	if _is_mage() and can_cast and canvas != null and not canvas.visible:
 		canvas.call("open")
+
+func _open_canvas_after_touch() -> void:
+	if player != null and player.has_method("has_selected_potion") and player.call("has_selected_potion"):
+		return
+	var flags: Dictionary = SaveManager.data.get("flags", {})
+	var tutorial_stage := str(flags.get("tutorial_stage", "complete"))
+	var can_cast: bool = flags.get("isTutorialDone", false) == true or tutorial_stage in ["attack", "fight", "potion_finish"]
+	if _is_mage() and can_cast and canvas != null and not canvas.visible:
+		canvas.call_deferred("open")
 
 func _ensure_open_spell_action() -> void:
 	if not InputMap.has_action("open_spell"):
@@ -70,6 +85,20 @@ func _on_cast(strokes: Array, center: Vector2, radius: float) -> void:
 		_fizzle(FIZZLE_COST, spell.fail_reason)
 		_maybe_miscast(spell)
 		return
+	var flags: Dictionary = SaveManager.data.get("flags", {})
+	var tutorial_stage := str(flags.get("tutorial_stage", "complete"))
+	var in_tutorial_lesson: bool = flags.get("isTutorialDone", false) != true and tutorial_stage == "attack"
+	if in_tutorial_lesson:
+		if spell.outline != "arrow" or spell.count != 1 or not ["fire", "earth"].has(spell.sigil):
+			print("Tutorial spell lesson: use Fire or Earth, one modifier dot, and an Arrow outline.")
+			return
+	else:
+		var tree_data: Variant = SaveManager.data.get("treeOfLife", {})
+		var unlocked: Array = tree_data.get("unlocked_outlines", ["arrow"]) if tree_data is Dictionary else ["arrow"]
+		var outline_key := "asterisk" if spell.outline == "asterisk" else ("line" if spell.outline in ["line", "seal"] else spell.outline)
+		if not unlocked.has(outline_key):
+			print("This spell outline is locked. Unlock it in the skill tree first.")
+			return
 	var current_mana := float(player.get("mana"))
 	if current_mana < spell.mana_cost:
 		_fizzle(minf(FIZZLE_COST, current_mana), "not enough mana")
@@ -77,13 +106,18 @@ func _on_cast(strokes: Array, center: Vector2, radius: float) -> void:
 	_set_mana(current_mana - spell.mana_cost)
 	if _maybe_miscast(spell):
 		return
+	var current_scene := get_tree().current_scene
+	if in_tutorial_lesson and current_scene != null and current_scene.has_method("tutorial_spell_cast"):
+		current_scene.call("tutorial_spell_cast", spell.sigil, spell.outline, spell.count)
 
 	var quality_power := lerpf(0.5, 1.0, clampf(spell.quality, 0.0, 1.0))
 	var power := quality_power * spell.strength
+	if player.has_method("critical_power"):
+		power = float(player.call("critical_power", power))
 	_spawn_cast_flash(spell.sigil)
 	match spell.outline:
 		"line", "seal":
-			_backfire(spell, power)
+			_cast_block(spell, power)
 		"arrow":
 			_cast_arrow(spell, power)
 		"asterisk":
@@ -125,6 +159,45 @@ func _cast_burst(spell: SpellData, power: float) -> void:
 	get_tree().current_scene.add_child(b)
 	b.global_position = player.global_position
 	b.call("setup", spell.sigil, 120.0 * spell.reach, power)
+
+func _cast_block(spell: SpellData, power: float) -> void:
+	match spell.sigil:
+		"earth":
+			player.call("cast_earth_barrier", 4.0)
+		"water":
+			player.call("cast_water_barrier", 10.0)
+		"fire":
+			player.call("cast_fire_barrier", 10.0)
+		"wind":
+			player.call("cast_wind_burst", _random_push_direction(), power)
+		"poison", "heal":
+			_backfire(spell, power)
+		_:
+			_backfire(spell, power)
+
+func _random_push_direction() -> Vector2:
+	var enemy_directions: Array[Vector2] = []
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if is_instance_valid(enemy):
+			var to_enemy := player.global_position.direction_to(enemy.global_position)
+			if to_enemy != Vector2.ZERO:
+				enemy_directions.append(to_enemy)
+	if enemy_directions.is_empty():
+		return Vector2.from_angle(randf_range(0.0, TAU))
+
+	var safest_direction := -enemy_directions[0]
+	var lowest_enemy_alignment := INF
+	for _attempt in 64:
+		var candidate := Vector2.from_angle(randf_range(0.0, TAU))
+		var worst_alignment := -1.0
+		for to_enemy in enemy_directions:
+			worst_alignment = maxf(worst_alignment, candidate.dot(to_enemy))
+		if worst_alignment < lowest_enemy_alignment:
+			lowest_enemy_alignment = worst_alignment
+			safest_direction = candidate
+		if worst_alignment <= 0.0:
+			return candidate
+	return safest_direction
 
 func _spawn_cast_flash(element: String) -> void:
 	var flash := Node2D.new()

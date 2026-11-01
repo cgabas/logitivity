@@ -4,16 +4,36 @@
 		"name": "",
 		"health": 100.00,
 		"maxHealth": 100.00,
+		"defence": 0,
+		"maxDefence": 100,
+		"attack": 25,
+		"maxAttack": 25,
+		"crit_rate": 0.0,
 		"caster": 100,
 		"maxCaster": 100,
+		"skill_points": 0,
+		"equipped_skill": "",
 		"coins": 0,
 		"diamond": 0,
-		"position": {"x": null, "y": null}
+		"position": {"x": null, "y": null},
+		"facing_direction": {"x": 0.0, "y": 1.0}
 	},
+	"enemies": {},
+	"enemy_defaults": {
+		"defence": 0,
+		"maxDefence": 100,
+		"attack": 15,
+		"maxAttack": 15
+	},
+	"chests": {},
 	"inventory": [],
-	"treeOfLife": [],
+	"treeOfLife": {
+		"unlocked_outlines": ["arrow"],
+		"unlocked_skills": []
+	},
 	"flags": {
 		"isTutorialDone": false,
+		"tutorial_stage": "move_to_orb",
 		"isFromHogward": null
 	}
 }
