@@ -16,6 +16,7 @@
 		"coins": 0,
 		"diamond": 0,
 		"position": {"x": null, "y": null},
+		"checkpoint": {"scene": "", "x": null, "y": null},
 		"facing_direction": {"x": 0.0, "y": 1.0}
 	},
 	"enemies": {},

@@ -70,7 +70,18 @@ func loadGame() -> bool:
 	if not data.get("player") is Dictionary:
 		data["player"] = {}
 	data["player"]["skill_points"] = int(data["player"].get("skill_points", 0))
+	_remove_legacy_skill_orb_inventory_items()
 	return true
+
+func _remove_legacy_skill_orb_inventory_items() -> void:
+	var inventory: Variant = data.get("inventory", [])
+	if not inventory is Array:
+		return
+	for index in range(inventory.size() - 1, -1, -1):
+		var item: Variant = inventory[index]
+		if item is Dictionary and (str(item.get("type", "")) == "skill_orb" or str(item.get("name", "")) in ["Mage Skill Orb", "Warrior Skill Orb"]):
+			inventory.remove_at(index)
+	data["inventory"] = inventory
 
 #to read JSON file duh...
 func readJSON(path: String) -> Dictionary:

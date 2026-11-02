@@ -7,6 +7,9 @@ const INVENTORY_BUTTON_PRESSED := preload("res://UI/texture/hint_box_pressed.png
 const PAUSE_RESUME := 0
 const PAUSE_MAIN_MENU := 1
 const PAUSE_TOGGLE_INPUT := 2
+const PAUSE_HUAWEI_SIGN_IN := 3
+const PAUSE_HUAWEI_ACHIEVEMENTS := 4
+const PAUSE_HUAWEI_LEADERBOARD := 5
 
 @onready var casterProgressBarTest: ProgressBar = $Indicator/manaVisual/casterProgressBar_TEST
 @onready var casterHealthProgressBarTest: ProgressBar = $Indicator/healthVisual/casterHealthProgressBar_TEST
@@ -96,6 +99,17 @@ func _setup_pause_menu() -> void:
 	popup.add_item("Resume", PAUSE_RESUME)
 	popup.add_item("Input: " + GlobalInputDetection.inputModeName(), PAUSE_TOGGLE_INPUT)
 	popup.add_item("Return to Main Menu", PAUSE_MAIN_MENU)
+	popup.add_separator()
+	popup.add_item("Sign in to Huawei", PAUSE_HUAWEI_SIGN_IN)
+	popup.add_item("Achievements", PAUSE_HUAWEI_ACHIEVEMENTS)
+	if not HuaweiGameService.LEADERBOARD_ID.is_empty():
+		popup.add_item("Leaderboard", PAUSE_HUAWEI_LEADERBOARD)
+	var huawei_ready: bool = HuaweiGameService.is_available()
+	popup.set_item_disabled(popup.get_item_index(PAUSE_HUAWEI_SIGN_IN), not huawei_ready)
+	popup.set_item_disabled(popup.get_item_index(PAUSE_HUAWEI_ACHIEVEMENTS), not huawei_ready)
+	if not HuaweiGameService.LEADERBOARD_ID.is_empty():
+		popup.set_item_disabled(popup.get_item_index(PAUSE_HUAWEI_LEADERBOARD), not huawei_ready)
+
 	popup.process_mode = Node.PROCESS_MODE_ALWAYS
 	popup.add_theme_font_override("font", UI_FONT)
 	popup.add_theme_font_size_override("font_size", 22)
@@ -146,6 +160,18 @@ func _on_pause_menu_item_pressed(item_id: int) -> void:
 		get_tree().paused = false
 		SaveManager.saveGame()
 		get_tree().change_scene_to_file(MAIN_MENU_SCENE)
+	elif item_id == PAUSE_HUAWEI_SIGN_IN:
+		menu_button.get_popup().hide()
+		get_tree().paused = false
+		HuaweiGameService.sign_in()
+	elif item_id == PAUSE_HUAWEI_ACHIEVEMENTS:
+		menu_button.get_popup().hide()
+		get_tree().paused = false
+		HuaweiGameService.show_achievements()
+	elif item_id == PAUSE_HUAWEI_LEADERBOARD:
+		menu_button.get_popup().hide()
+		get_tree().paused = false
+		HuaweiGameService.show_default_leaderboard()
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(_delta: float) -> void:

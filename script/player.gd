@@ -12,9 +12,10 @@ const BARRIER_DAMAGE_MULTIPLIER: float = 0.8
 const WIND_PUSH_DECELERATION: float = 1100.0
 const POTION_THROW_SCRIPT := preload("res://script/potion_throw.gd")
 const POTION_AIM_INDICATOR_SCRIPT := preload("res://script/potion_aim_indicator.gd")
-const POTION_MIN_THROW_DISTANCE: float = 96.0
+const POTION_MIN_THROW_DISTANCE: float = 112.0
 const POTION_MAX_THROW_DISTANCE: float = 360.0
 const POTION_MAX_PULL_DISTANCE: float = 180.0
+const POTION_SPLASH_RADIUS: float = 57.6
 @export var mana_regen_per_second: float = 3.0
 
 # --- CORE VARIABLES ---
@@ -191,6 +192,8 @@ func playerMovementFunction(delta: float) -> void:
 		velocity = recordLastDirection * dashSpeed
 		
 		for area in playerRange.get_overlapping_areas():
+			if not area.is_in_group("EnemyHitbox"):
+				continue
 			var enemy_node := area.get_parent()
 			if enemy_node and not enemiesHitInDash.has(enemy_node) and enemy_node.has_method("takeDamage"):
 				enemy_node.takeDamage(outgoing_damage(50), global_position)
@@ -213,7 +216,7 @@ func playerMovementFunction(delta: float) -> void:
 	# --- 2. CLASS-SPECIFIC ABILITIES ---
 	var is_mage: bool = (SaveManager.data["flags"]["isFromHogward"] == true)
 	var tutorial_stage := str(SaveManager.data.get("flags", {}).get("tutorial_stage", "complete"))
-	var combat_allowed: bool = SaveManager.data.get("flags", {}).get("isTutorialDone", false) == true or tutorial_stage in ["attack", "fight", "potion_finish", "potion_throw", "potion_poison_wait", "potion_drink_select", "potion_drink"]
+	var combat_allowed: bool = SaveManager.data.get("flags", {}).get("isTutorialDone", false) == true or tutorial_stage in ["attack", "fight", "potion_finish"]
 	
 	# --test--
 	if is_mage:
@@ -226,7 +229,7 @@ func playerMovementFunction(delta: float) -> void:
 			playerAttackFunction()
 			
 	# --- INDEPENDENT SKILL CHECK (Fixed Indentation) ---
-	if Input.is_action_just_pressed("player_skill") and _has_warrior_skill_unlocked():
+	if Input.is_action_just_pressed("player_skill") and _has_warrior_skill_unlocked() and not _is_tutorial_potion_lesson():
 		match equipped_warrior_skill:
 			"flash_step":
 				performFlashStep()
@@ -263,6 +266,10 @@ func playerBehaviourFunction() -> void:
 func has_selected_potion() -> bool:
 	return not selected_potion_id.is_empty() and _inventory_has_potion(selected_potion_id)
 
+func _is_tutorial_potion_lesson() -> bool:
+	var flags: Dictionary = SaveManager.data.get("flags", {})
+	return flags.get("isTutorialDone", false) != true and str(flags.get("tutorial_stage", "")) in ["potion_select", "potion_throw", "potion_poison_wait", "potion_drink_select", "potion_drink"]
+
 func select_potion(item_id: String) -> void:
 	var registry := load("res://script/item_registry.gd")
 	var item_data: Dictionary = registry.get_item(item_id)
@@ -276,8 +283,7 @@ func _on_mobile_attack_pressed() -> void:
 	if SaveManager.data.get("flags", {}).get("isFromHogward") != true:
 		var flags: Dictionary = SaveManager.data.get("flags", {})
 		var stage := str(flags.get("tutorial_stage", "complete"))
-		# ADDED potion tutorial stages to the allowed combat list
-		if flags.get("isTutorialDone", false) == true or stage in ["attack", "fight", "potion_finish", "potion_throw", "potion_poison_wait", "potion_drink_select", "potion_drink"]:
+		if flags.get("isTutorialDone", false) == true or stage in ["attack", "fight", "potion_finish"]:
 			playerAttackFunction()
 
 func _on_mobile_attack_released() -> void:
@@ -305,7 +311,7 @@ func _begin_potion_action() -> void:
 	potion_hold_active = true
 	potion_aim_direction = recordLastDirection
 	potion_throw_distance = POTION_MIN_THROW_DISTANCE
-	potion_mouse_pull_origin = get_global_mouse_position()
+	potion_mouse_pull_origin = global_position
 	potion_aim_indicator = Node2D.new()
 	potion_aim_indicator.name = "PotionAimIndicator"
 	potion_aim_indicator.set_script(POTION_AIM_INDICATOR_SCRIPT)
@@ -325,16 +331,21 @@ func _end_potion_action() -> void:
 
 func _update_potion_aim() -> void:
 	var pull_vector := Vector2.ZERO
+	var pull_strength := 0.0
 	if GlobalInputDetection.inputType() == 0:
 		pull_vector = get_global_mouse_position() - potion_mouse_pull_origin
+		pull_strength = clampf(pull_vector.length() / POTION_MAX_PULL_DISTANCE, 0.0, 1.0)
 	else:
 		pull_vector = Input.get_vector("move_left", "move_right", "move_up", "move_down")
+		# The virtual joystick reports a normalized displacement from its center.
+		pull_strength = clampf(pull_vector.length(), 0.0, 1.0)
+	potion_throw_distance = lerpf(POTION_MIN_THROW_DISTANCE, POTION_MAX_THROW_DISTANCE, pull_strength)
 	if pull_vector.length_squared() > 0.0001:
-		var pull_strength := clampf(pull_vector.length() / POTION_MAX_PULL_DISTANCE, 0.0, 1.0)
 		potion_aim_direction = -pull_vector.normalized()
-		potion_throw_distance = lerpf(POTION_MIN_THROW_DISTANCE, POTION_MAX_THROW_DISTANCE, pull_strength)
 	if is_instance_valid(potion_aim_indicator):
-		potion_aim_indicator.call("set_aim", potion_aim_direction, potion_throw_distance)
+		var tutorial_stage := str(SaveManager.data.get("flags", {}).get("tutorial_stage", "complete"))
+		var splash_radius := 96.0 if tutorial_stage == "potion_throw" else POTION_SPLASH_RADIUS
+		potion_aim_indicator.call("set_aim", potion_aim_direction, potion_throw_distance, splash_radius)
 
 func _drink_selected_potion() -> void:
 	var potion_id := selected_potion_id
@@ -401,8 +412,8 @@ func _consume_inventory_potion(item_id: String) -> bool:
 			SaveManager.data["inventory"] = items
 			if not _inventory_has_potion(item_id):
 				selected_potion_id = ""
-		SaveManager.saveGame()
-		return true
+			SaveManager.saveGame()
+			return true
 	return false
 
 func apply_potion(item_id: String) -> void:
@@ -462,6 +473,8 @@ func critical_power(base_power: float) -> float:
 
 #melee damage for warrior
 func playerAttackFunction() -> void:
+	if _is_tutorial_potion_lesson():
+		return
 	if SaveManager.data["flags"]["isFromHogward"] == true:
 		return
 	if isAttacking or isDashing:
@@ -475,6 +488,8 @@ func playerAttackFunction() -> void:
 	
 	#check all Area2Ds currently inside playerRange
 	for area in playerRange.get_overlapping_areas():
+		if not area.is_in_group("EnemyHitbox"):
+			continue
 		var enemy_node := area.get_parent()
 		
 		#deal 25 damage if the parent node
@@ -492,7 +507,7 @@ func playerAttackFunction() -> void:
 #              FLASH STEP SKILL
 #-----------------------------------------------
 func performFlashStep() -> void:
-	if isDashing or mana < 30.0:
+	if _is_tutorial_potion_lesson() or isDashing or mana < 30.0:
 		return
 		
 	set_mana(mana - 30.0)
@@ -512,7 +527,7 @@ func performFlashStep() -> void:
 #              UPPERCUT SKILLS
 #-----------------------------------------------
 func performUppercut() -> void:
-	if isAttacking or isDashing or mana < 45.0:
+	if _is_tutorial_potion_lesson() or isAttacking or isDashing or mana < 45.0:
 		return
 		
 	set_mana(mana - 45.0)
@@ -533,6 +548,8 @@ func performUppercut() -> void:
 	
 	# Deal massive damage to all enemies caught in the expanded blast
 	for area in playerRange.get_overlapping_areas():
+		if not area.is_in_group("EnemyHitbox"):
+			continue
 		var enemy_node := area.get_parent()
 		if enemy_node and enemy_node.has_method("takeDamage"):
 			enemy_node.takeDamage(outgoing_damage(85), global_position) # 85 burst damage

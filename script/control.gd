@@ -97,7 +97,7 @@ func show_chest_reward(amount: int, already_claimed: bool, includes_skill_orb: b
 
 	title_label.text = "CHEST REWARD"
 	var potion_count := potion_ids.size()
-	status_label.text = "You collected %d Gold Coins, a Skill Orb, and %d potions!" % [amount, potion_count] if includes_skill_orb and potion_count > 1 else ("You collected %d Gold Coins, a Skill Orb, and a potion!" % amount if includes_skill_orb and potion_count == 1 else "You collected %d Gold Coins!" % amount)
+	status_label.text = "You collected %d Gold Coins, 1 Skill Point, and %d potions!" % [amount, potion_count] if includes_skill_orb and potion_count > 1 else ("You collected %d Gold Coins, 1 Skill Point, and a potion!" % amount if includes_skill_orb and potion_count == 1 else ("You collected %d Gold Coins and 1 Skill Point!" % amount if includes_skill_orb else "You collected %d Gold Coins!" % amount))
 	var card_style := StyleBoxFlat.new()
 	card_style.bg_color = Color(0.14, 0.11, 0.18, 1.0)
 	card_style.border_color = Color(0.72, 0.56, 0.3)

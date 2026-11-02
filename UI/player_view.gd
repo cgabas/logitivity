@@ -19,7 +19,8 @@ const ITEM_REGISTRY := preload("res://script/item_registry.gd")
 @onready var mobileControl: Control = $MobileControl
 
 var inventory_menu: Control
-var inventory_items: VBoxContainer
+var inventory_panel: PanelContainer
+var inventory_items: GridContainer
 var inventory_coins_label: Label
 var inventory_title: Label
 var inventory_hint_label: Label
@@ -33,6 +34,8 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_create_inventory_menu()
 	_create_game_over_menu()
+	get_viewport().size_changed.connect(_layout_inventory_menu)
+	_layout_inventory_menu()
 
 # Enable mobile UI controls when touchscreen mode is selected.
 func _process(_delta: float) -> void:
@@ -81,25 +84,21 @@ func _create_inventory_menu() -> void:
 	dimmer.mouse_filter = Control.MOUSE_FILTER_STOP
 	inventory_menu.add_child(dimmer)
 
-	var panel := PanelContainer.new()
-	panel.name = "InventoryPanel"
-	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	panel.offset_left = -250.0
-	panel.offset_top = -205.0
-	panel.offset_right = 250.0
-	panel.offset_bottom = 205.0
-	panel.add_theme_stylebox_override("panel", _popup_style())
-	inventory_menu.add_child(panel)
+	inventory_panel = PanelContainer.new()
+	inventory_panel.name = "InventoryPanel"
+	inventory_panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	inventory_panel.add_theme_stylebox_override("panel", _popup_style())
+	inventory_menu.add_child(inventory_panel)
 
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 34)
-	margin.add_theme_constant_override("margin_top", 24)
-	margin.add_theme_constant_override("margin_right", 34)
-	margin.add_theme_constant_override("margin_bottom", 24)
-	panel.add_child(margin)
+	margin.add_theme_constant_override("margin_left", 16)
+	margin.add_theme_constant_override("margin_top", 14)
+	margin.add_theme_constant_override("margin_right", 16)
+	margin.add_theme_constant_override("margin_bottom", 14)
+	inventory_panel.add_child(margin)
 
 	var content := VBoxContainer.new()
-	content.add_theme_constant_override("separation", 14)
+	content.add_theme_constant_override("separation", 8)
 	margin.add_child(content)
 
 	var header := HBoxContainer.new()
@@ -113,12 +112,30 @@ func _create_inventory_menu() -> void:
 	header.add_child(inventory_title)
 
 	inventory_close_button = _make_button("CLOSE", Vector2(112.0, 42.0))
+	inventory_close_button.custom_minimum_size = Vector2(174.0, 66.0)
+	inventory_close_button.add_theme_font_size_override("font_size", 20)
+	inventory_close_button.add_theme_stylebox_override("normal", _padded_button_style(BUTTON_NORMAL, 20.0, 12.0))
+	inventory_close_button.add_theme_stylebox_override("pressed", _padded_button_style(BUTTON_PRESSED, 20.0, 12.0))
+	inventory_close_button.add_theme_stylebox_override("hover", _padded_button_style(BUTTON_HOVER, 20.0, 12.0))
+	inventory_close_button.add_theme_stylebox_override("disabled", _padded_button_style(BUTTON_DISABLED, 20.0, 12.0))
 	inventory_close_button.pressed.connect(_close_inventory)
 	header.add_child(inventory_close_button)
 	inventory_tabs = TabContainer.new()
 	inventory_tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	inventory_tabs.tab_changed.connect(_on_inventory_tab_changed)
 	content.add_child(inventory_tabs)
+	var tab_bar: TabBar = inventory_tabs.get_tab_bar()
+	tab_bar.custom_minimum_size.y = 58.0
+	tab_bar.add_theme_font_override("font", UI_FONT)
+	tab_bar.add_theme_font_size_override("font_size", 18)
+	tab_bar.add_theme_color_override("font_selected_color", Color.WHITE)
+	tab_bar.add_theme_color_override("font_unselected_color", Color(0.86, 0.79, 0.72))
+	tab_bar.add_theme_color_override("font_hovered_color", Color(0.55, 0.9, 1.0))
+	tab_bar.add_theme_constant_override("h_separation", 10)
+	tab_bar.add_theme_stylebox_override("tab_selected", _padded_button_style(BUTTON_PRESSED, 18.0, 12.0))
+	tab_bar.add_theme_stylebox_override("tab_unselected", _padded_button_style(BUTTON_NORMAL, 18.0, 12.0))
+	tab_bar.add_theme_stylebox_override("tab_hovered", _padded_button_style(BUTTON_HOVER, 18.0, 12.0))
+	tab_bar.add_theme_stylebox_override("tab_disabled", _padded_button_style(BUTTON_DISABLED, 18.0, 12.0))
 	var items_page := VBoxContainer.new()
 	items_page.name = "Items"
 	items_page.add_theme_constant_override("separation", 14)
@@ -155,10 +172,21 @@ func _create_inventory_menu() -> void:
 
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	scroll.scroll_deadzone = 8
+	scroll.add_theme_constant_override("scrollbar_v_separation", 8)
 	items_page.add_child(scroll)
-	inventory_items = VBoxContainer.new()
+	var vertical_scrollbar: VScrollBar = scroll.get_v_scroll_bar()
+	vertical_scrollbar.custom_minimum_size.x = 26.0
+	vertical_scrollbar.add_theme_stylebox_override("scroll", _scrollbar_style(Color(0.12, 0.055, 0.035, 0.9)))
+	vertical_scrollbar.add_theme_stylebox_override("grabber", _scrollbar_style(Color(0.72, 0.48, 0.28, 1.0)))
+	vertical_scrollbar.add_theme_stylebox_override("grabber_highlight", _scrollbar_style(Color(0.88, 0.67, 0.4, 1.0)))
+	vertical_scrollbar.add_theme_stylebox_override("grabber_pressed", _scrollbar_style(Color(0.94, 0.78, 0.5, 1.0)))
+	inventory_items = GridContainer.new()
+	inventory_items.columns = 4
 	inventory_items.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	inventory_items.add_theme_constant_override("separation", 6)
+	inventory_items.add_theme_constant_override("h_separation", 8)
+	inventory_items.add_theme_constant_override("v_separation", 8)
 	scroll.add_child(inventory_items)
 
 	inventory_hint_label = Label.new()
@@ -169,6 +197,32 @@ func _create_inventory_menu() -> void:
 	inventory_hint_label.add_theme_color_override("font_color", Color(0.72, 0.72, 0.8))
 	items_page.add_child(inventory_hint_label)
 	_create_skill_tree_page(skills_page)
+
+func _layout_inventory_menu() -> void:
+	if inventory_panel == null:
+		return
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	var panel_size := Vector2(maxf(320.0, minf(viewport_size.x - 20.0, 960.0)), maxf(420.0, minf(viewport_size.y - 20.0, 900.0)))
+	inventory_panel.size = panel_size
+	inventory_panel.position = (viewport_size - panel_size) * 0.5
+
+func _padded_button_style(texture: Texture2D, horizontal_padding: float, vertical_padding: float) -> StyleBoxTexture:
+	var style := _button_style(texture)
+	style.content_margin_left = horizontal_padding
+	style.content_margin_right = horizontal_padding
+	style.content_margin_top = vertical_padding
+	style.content_margin_bottom = vertical_padding
+	return style
+
+func _scrollbar_style(color: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = color
+	style.set_corner_radius_all(8)
+	style.content_margin_left = 4.0
+	style.content_margin_right = 4.0
+	style.content_margin_top = 4.0
+	style.content_margin_bottom = 4.0
+	return style
 
 func _create_skill_tree_page(page: VBoxContainer) -> void:
 	page.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -280,7 +334,13 @@ func _retry_after_game_over() -> void:
 	var player_data: Dictionary = SaveManager.data.get("player", {})
 	player_data["health"] = player_data.get("maxHealth", 100.0)
 	player_data["caster"] = player_data.get("maxCaster", 100.0)
-	player_data["position"] = {"x": null, "y": null}
+	var checkpoint: Variant = player_data.get("checkpoint", {})
+	var current_scene := get_tree().current_scene
+	if checkpoint is Dictionary and current_scene != null and str(checkpoint.get("scene", "")) == current_scene.scene_file_path \
+		and checkpoint.get("x") != null and checkpoint.get("y") != null:
+		player_data["position"] = {"x": float(checkpoint["x"]), "y": float(checkpoint["y"])}
+	else:
+		player_data["position"] = {"x": null, "y": null}
 	SaveManager.data["player"] = player_data
 	get_tree().paused = false
 	get_tree().reload_current_scene()
@@ -362,39 +422,75 @@ func _refresh_inventory() -> void:
 		child.queue_free()
 
 	var saved_items: Variant = SaveManager.data.get("inventory", [])
-	if not saved_items is Array or saved_items.is_empty():
-		_add_inventory_label("No items in your inventory yet.")
-		return
-	for item in saved_items:
-		var item_name := "Item"
-		var item_count := 1
-		var item_icon: Texture2D
-		if item is Dictionary:
-			item_name = str(item.get("name", item.get("id", "Item")))
-			item_count = maxi(1, int(item.get("count", 1)))
-			var item_data := ITEM_REGISTRY.get_item(str(item.get("id", "")))
-			if not item_data.is_empty():
-				item_icon = item_data.get("icon") as Texture2D
-				if item_data.get("type") == "potion":
-					var item_id := str(item.get("id", ""))
-					var player_node := get_tree().get_first_node_in_group("player")
-					var selected := player_node != null and str(player_node.get("selected_potion_id")) == item_id
-					var tutorial_stage := str(SaveManager.data.get("flags", {}).get("tutorial_stage", ""))
-					var allowed_for_tutorial := tutorial_stage != "potion_select" or item_id == "potion_poison"
-					if tutorial_stage == "potion_drink_select":
-						allowed_for_tutorial = item_id in ["potion_attack", "potion_crit", "potion_defence", "potion_speed"]
-					var potion_button := _make_button(("SELECTED  " if selected else "SELECT  ") + item_name + "  x%d" % item_count, Vector2(0.0, 48.0))
-					potion_button.disabled = not allowed_for_tutorial
-					potion_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-					potion_button.icon = item_icon
-					potion_button.expand_icon = false
-					potion_button.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
-					potion_button.pressed.connect(_select_inventory_potion.bind(item_id))
-					inventory_items.add_child(potion_button)
-					continue
-		else:
-			item_name = str(item)
-		_add_inventory_label("%s  x%d" % [item_name, item_count], item_icon)
+	if not saved_items is Array:
+		saved_items = []
+	for slot_index in range(20):
+		var slot_item: Variant = saved_items[slot_index] if slot_index < saved_items.size() else null
+		var slot := _make_inventory_slot(slot_item)
+		inventory_items.add_child(slot)
+	if saved_items.size() > 20:
+		inventory_hint_label.text += "  (More items than available slots)"
+
+func _make_inventory_slot(item: Variant) -> Button:
+	var slot_side := clampf((inventory_panel.size.x - 56.0) / 4.0, 56.0, 90.0)
+	var slot := _make_button("", Vector2(slot_side, slot_side))
+	slot.custom_minimum_size = Vector2(slot_side, slot_side)
+	slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slot.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	slot.add_theme_font_size_override("font_size", 14)
+	if item == null:
+		slot.disabled = true
+		slot.tooltip_text = "Empty slot"
+		return slot
+	var item_data_entry: Dictionary = item if item is Dictionary else {"name": str(item), "count": 1}
+	var item_id := str(item_data_entry.get("id", ""))
+	var item_name := str(item_data_entry.get("name", item_id if not item_id.is_empty() else "Item"))
+	var item_count := maxi(1, int(item_data_entry.get("count", 1)))
+	var item_data := ITEM_REGISTRY.get_item(item_id)
+	var item_icon := item_data.get("icon") as Texture2D
+	if item_icon != null:
+		var icon := TextureRect.new()
+		icon.texture = item_icon
+		icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+		icon.offset_left = -slot_side * 0.28
+		icon.offset_top = -slot_side * 0.36
+		icon.offset_right = slot_side * 0.28
+		icon.offset_bottom = slot_side * 0.20
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		slot.add_child(icon)
+		var quantity := Label.new()
+		quantity.text = str(item_count)
+		quantity.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		quantity.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+		quantity.offset_left = -slot_side * 0.40
+		quantity.offset_top = -slot_side * 0.31
+		quantity.offset_right = -4.0
+		quantity.offset_bottom = -2.0
+		quantity.add_theme_font_override("font", UI_FONT)
+		quantity.add_theme_font_size_override("font_size", 15)
+		quantity.add_theme_color_override("font_color", Color.WHITE)
+		quantity.add_theme_color_override("font_shadow_color", Color.BLACK)
+		quantity.add_theme_constant_override("shadow_offset_x", 2)
+		quantity.add_theme_constant_override("shadow_offset_y", 2)
+		quantity.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		slot.add_child(quantity)
+	else:
+		slot.text = "%s\n×%d" % [item_name, item_count]
+	slot.tooltip_text = "%s ×%d" % [item_name, item_count]
+	if item_data_entry.get("type", item_data.get("type", "")) == "potion":
+		var player_node := get_tree().get_first_node_in_group("player")
+		var selected := player_node != null and str(player_node.get("selected_potion_id")) == item_id
+		var tutorial_stage := str(SaveManager.data.get("flags", {}).get("tutorial_stage", ""))
+		var allowed_for_tutorial := tutorial_stage != "potion_select" or item_id == "potion_poison"
+		if tutorial_stage == "potion_drink_select":
+			allowed_for_tutorial = item_id in ["potion_attack", "potion_crit", "potion_defence", "potion_speed"]
+		slot.disabled = not allowed_for_tutorial
+		slot.modulate = Color(0.55, 0.9, 1.0) if selected else Color.WHITE
+		slot.add_theme_stylebox_override("normal", _button_style(BUTTON_PRESSED if selected else BUTTON_NORMAL))
+		slot.pressed.connect(_select_inventory_potion.bind(item_id))
+	return slot
 
 func _add_inventory_label(text_value: String, icon_texture: Texture2D = null) -> void:
 	var row := HBoxContainer.new()

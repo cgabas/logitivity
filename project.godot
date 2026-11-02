@@ -20,6 +20,7 @@ config/icon="res://icon.svg"
 SaveManager="*uid://8ds4fs62ttdv"
 GlobalInputDetection="*uid://0or3a4qdrbny"
 InventoryManager="*uid://1pmtx6imvqms"
+HuaweiGameService="*res://script/huawei_game_service.gd"
 
 [display]
 
@@ -29,7 +30,7 @@ window/stretch/aspect="expand"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/godot_mcp/plugin.cfg")
+enabled=PackedStringArray("res://addons/godot_mcp/plugin.cfg", "res://addons/huawei_game_service/plugin.cfg")
 
 [gui]
 

@@ -19,6 +19,7 @@ extends Node2D
 @onready var orbRoomLight: PointLight2D = $PointLight2D
 @onready var door: TileMapLayer = $Door
 @onready var tutorArea: Area2D = $TutorialArea/tutorArea
+@onready var bossRoomArea: Area2D = $TutorialArea/bossArea
 @onready var chest: Chest = $TutorialArea/Chest
 @onready var tutorialEnemy: CharacterBody2D = $TutorialArea/step1/enemyTutorial
 @onready var attackTutorialLabel: Label = $TutorialArea/step1/Label
@@ -33,6 +34,8 @@ const WARRIOR_ORB_PROMPT := "Choose the Warrior orb.\nPress E / Tap A to choose.
 const MAGE_ORB_PROMPT := "Choose the Mage orb.\nPress E / Tap A to choose."
 
 func _ready() -> void:
+	if not bossRoomArea.body_entered.is_connected(_on_boss_room_body_entered):
+		bossRoomArea.body_entered.connect(_on_boss_room_body_entered)
 	_clear_tutorial_room_barriers()
 	# Keep the warrior skill menu outside the confirmation layer, which is hidden after class selection.
 	skillSelector.reparent(self)
@@ -98,6 +101,21 @@ func _ready() -> void:
 	elif tutorial_stage in ["potion_select", "potion_drink_select"]:
 		call_deferred("_open_tutorial_potion_inventory")
 
+func _on_boss_room_body_entered(body: Node2D) -> void:
+	if body != player or not body.is_in_group("player"):
+		return
+	var current_scene := get_tree().current_scene
+	if current_scene == null:
+		return
+	var player_data: Dictionary = SaveManager.data.get("player", {})
+	player_data["checkpoint"] = {
+		"scene": current_scene.scene_file_path,
+		"x": player.position.x,
+		"y": player.position.y
+	}
+	SaveManager.data["player"] = player_data
+	SaveManager.saveGame()
+
 func _clear_tutorial_room_barriers() -> void:
 	var barrier_layer := get_node_or_null("Barrier") as TileMapLayer
 	var room_shape := tutorArea.get_node_or_null("CollisionShape2D") as CollisionShape2D
@@ -150,13 +168,14 @@ func _update_mobile_action_buttons() -> void:
 		return
 	var touch_enabled: bool = GlobalInputDetection.inputType() != 0
 	var class_interaction_ready := tutorial_stage != "move_to_orb" or selectClassType != null
-	var combat_ready := tutorial_stage in ["attack", "fight", "potion_throw", "complete"]
+	var combat_ready := tutorial_stage in ["attack", "fight", "potion_finish", "complete"]
 	var potion_tutorial_ready: bool = tutorial_stage == "potion_throw" or SaveManager.data.get("flags", {}).get("isTutorialDone", false) == true
 	var button_a := actions.get_node_or_null("buttonA") as TouchScreenButton
 	var button_b := actions.get_node_or_null("buttonB") as TouchScreenButton
 	var button_potion := actions.get_node_or_null("buttonPotion") as TouchScreenButton
 	var button_skill := actions.get_node_or_null("buttonSkill") as TouchScreenButton
 	var has_warrior_skill: bool = SaveManager.data.get("flags", {}).get("isFromHogward") == false and player.has_method("_has_warrior_skill_unlocked") and player.call("_has_warrior_skill_unlocked") == true
+	var potion_lesson_active: bool = tutorial_stage in ["potion_select", "potion_throw", "potion_poison_wait", "potion_drink_select", "potion_drink"]
 	if button_a != null:
 		button_a.visible = touch_enabled and class_interaction_ready
 	if button_b != null:
@@ -164,7 +183,7 @@ func _update_mobile_action_buttons() -> void:
 	if button_potion != null:
 		button_potion.visible = touch_enabled and potion_tutorial_ready
 	if button_skill != null:
-		button_skill.visible = touch_enabled and has_warrior_skill and tutorial_stage != "move_to_orb"
+		button_skill.visible = touch_enabled and has_warrior_skill and tutorial_stage != "move_to_orb" and not potion_lesson_active
 	var a_label := actions.get_node_or_null("Label2") as Label
 	var b_label := actions.get_node_or_null("Label") as Label
 	var potion_label := actions.get_node_or_null("Label3") as Label
@@ -176,7 +195,7 @@ func _update_mobile_action_buttons() -> void:
 	if potion_label != null:
 		potion_label.visible = touch_enabled and potion_tutorial_ready
 	if skill_label != null:
-		skill_label.visible = touch_enabled and has_warrior_skill and tutorial_stage != "move_to_orb"
+		skill_label.visible = touch_enabled and has_warrior_skill and tutorial_stage != "move_to_orb" and not potion_lesson_active
 
 func _update_attack_tutorial_label() -> void:
 	if tutorial_stage == "move_to_orb":
@@ -276,7 +295,7 @@ func _setup_tutorial_stage() -> void:
 	if is_instance_valid(tutorialEnemy):
 		tutorialEnemy.visible = enemy_active
 		tutorialEnemy.set_physics_process(enemy_active)
-		for path in ["enemyTutorialShape", "enemyTutorialArea/enemyTutorialAreaShape"]:
+		for path in ["enemyTutorialShape", "enemyTutorialArea/enemyTutorialAreaShape", "enemyTutorialHitboxArea/enemyTutorialHitboxAreaShape"]:
 			var shape := tutorialEnemy.get_node_or_null(path) as CollisionShape2D
 			if shape != null:
 				shape.set_deferred("disabled", not enemy_active)
@@ -288,7 +307,7 @@ func _setup_tutorial_stage() -> void:
 		potionTutorialEnemy.set_physics_process(potion_enemy_active)
 		if tutorial_stage == "potion_poison_wait":
 			potionTutorialEnemy.set("target_player", null)
-		for path in ["enemyTutorialShape", "enemyTutorialArea/enemyTutorialAreaShape"]:
+		for path in ["enemyTutorialShape", "enemyTutorialArea/enemyTutorialAreaShape", "enemyTutorialHitboxArea/enemyTutorialHitboxAreaShape"]:
 			var shape := potionTutorialEnemy.get_node_or_null(path) as CollisionShape2D
 			if shape != null:
 				shape.set_deferred("disabled", not potion_enemy_active)
@@ -334,6 +353,9 @@ func _ensure_potion_tutorial_goblin() -> void:
 			var saved_value: Variant = saved_enemies.get(saved_key, {})
 			if saved_value is Dictionary:
 				saved_enemy_data = saved_value
+	if not is_instance_valid(tutorialEnemy):
+		push_error("Cannot create the potion tutorial goblin: the authored tutorial goblin template is missing.")
+		return
 	potionTutorialEnemy = tutorialEnemy.duplicate() as CharacterBody2D
 	if potionTutorialEnemy == null:
 		return
@@ -356,7 +378,7 @@ func _ensure_potion_tutorial_goblin() -> void:
 		health_bar.max_value = 25.0
 		health_bar.value = float(potionTutorialEnemy.get("health"))
 		health_bar.show()
-	for path in ["enemyTutorialShape", "enemyTutorialArea/enemyTutorialAreaShape"]:
+	for path in ["enemyTutorialShape", "enemyTutorialArea/enemyTutorialAreaShape", "enemyTutorialHitboxArea/enemyTutorialHitboxAreaShape"]:
 		var shape := potionTutorialEnemy.get_node_or_null(path) as CollisionShape2D
 		if shape != null:
 			shape.set_deferred("disabled", false)

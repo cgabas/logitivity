@@ -75,12 +75,9 @@ func interact() -> void:
 			player_data["coins"] = int(player_data.get("coins", 0)) + gold_coin_reward
 			player_data["skill_points"] = int(player_data.get("skill_points", 0)) + skill_point_reward
 			save_data["player"] = player_data
-			var class_is_mage: bool = save_data.get("flags", {}).get("isFromHogward") == true
-			var orb_name := "Mage Skill Orb" if class_is_mage else "Warrior Skill Orb"
 			var inventory: Variant = save_data.get("inventory", [])
 			if not inventory is Array:
 				inventory = []
-			inventory.append({"name": orb_name, "type": "skill_orb", "count": skill_point_reward})
 			if chest_id == "tutorial_chest":
 				save_data["inventory"] = inventory
 				reward_potion_ids = _ensure_tutorial_potions(save_data)

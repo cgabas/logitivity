@@ -7,6 +7,9 @@ const KNOCKBACK_FORCE: float = 250.0
 const ATTACK_RANGE: float = 80.0 #scaled collision shapes prevent the goblin getting closer than this
 const ATTACK_DAMAGE: int = 15
 const ATTACK_COOLDOWN: float = 1.0
+const ATTACK_RECOVERY_DURATION: float = 0.5
+const ATTACK_WINDUP_DURATION: float = 0.4
+const ATTACK_DODGE_DOT_THRESHOLD: float = 0.5
 const MAX_HEALTH: int = 100
 const BURN_DURATION := 4.0
 const POISON_DURATION := 4.0
@@ -40,6 +43,9 @@ var crit_rate_before_potion := 0.0
 var isAlive: bool = true
 var knockback_velocity: Vector2 = Vector2.ZERO
 var attack_timer: float = 0.0
+var attack_recovery_timer: float = 0.0
+var attack_windup_timer: float = 0.0
+var attack_direction: Vector2 = Vector2.DOWN
 var shield_health: int = 0
 var burn_time_left := 0.0
 var burn_tick_time := 0.0
@@ -55,20 +61,25 @@ var boss_minion_sequence: int = 0
 
 #nodes
 @onready var enemyTutorialArea: Area2D = _get_child_alias("enemyTutorialArea", "bossTutorialArea") as Area2D
+@onready var enemyTutorialHitboxArea: Area2D = _get_child_alias("enemyTutorialHitboxArea", "bossTutorialHitboxArea") as Area2D
 @onready var enemyTutorialSprite: AnimatedSprite2D = _get_child_alias("enemyTutorialSprite", "bossTutorialSprite") as AnimatedSprite2D
 @onready var enemyTutorialShape: CollisionShape2D = _get_child_alias("enemyTutorialShape", "bossTutorialShape") as CollisionShape2D
 @onready var enemyTutorialAreaShape: CollisionShape2D = _get_nested_shape_alias() as CollisionShape2D
+@onready var enemyTutorialHitboxShape: CollisionShape2D = _get_nested_hitbox_shape_alias() as CollisionShape2D
 @onready var enemyHealthBar: TextureProgressBar = _get_child_alias("enemyHealthBar", "bossTutorialHealthBar") as TextureProgressBar
 @onready var bossDetectionArea: Area2D = get_node_or_null("../../bossArea") as Area2D
 
 func _ready() -> void:
+	_ensure_player_hitbox()
 	add_to_group("Enemies")
 	add_to_group("enemies")
 	max_health = maxi(1, roundi(float(MAX_HEALTH) * maxf(health_multiplier, 0.1)))
 	attack_damage = maxi(1, roundi(float(ATTACK_DAMAGE) * maxf(damage_multiplier, 0.1)))
 	var base_speed_multiplier: float = 1.0 if is_boss else 0.8
 	movement_speed = SPEED * base_speed_multiplier * maxf(movement_multiplier, 0.1)
-	attack_range = ATTACK_RANGE * (1.5 if is_boss else 1.0)
+	# The boss's large body already lets it reach players at close range. Keep its
+	# melee radius tight so crossing behind it or dashing past can evade a strike.
+	attack_range = ATTACK_RANGE * (1.65 if is_boss else 1.25)
 	if is_boss:
 		health = max_health
 	var enemy_defaults: Dictionary = SaveManager.data.get("enemy_defaults", {})
@@ -81,7 +92,21 @@ func _ready() -> void:
 	var saved_enemy: Dictionary = _get_saved_enemy_data()
 	if not saved_enemy.is_empty():
 		if saved_enemy.get("is_alive", true) != true:
-			queue_free()
+			# Keep the authored tutorial enemy as a reusable template. The tutorial
+			# creates a second goblin later, and may need this node after a retry.
+			isAlive = false
+			remove_from_group("Enemies")
+			remove_from_group("enemies")
+			visible = false
+			set_physics_process(false)
+			if enemyTutorialShape != null:
+				enemyTutorialShape.set_deferred("disabled", true)
+			if enemyTutorialAreaShape != null:
+				enemyTutorialAreaShape.set_deferred("disabled", true)
+			if enemyTutorialHitboxShape != null:
+				enemyTutorialHitboxShape.set_deferred("disabled", true)
+			if enemyHealthBar != null:
+				enemyHealthBar.hide()
 			return
 		var saved_position: Dictionary = saved_enemy.get("position", {})
 		if saved_position.has("x") and saved_position.has("y"):
@@ -131,6 +156,34 @@ func _get_nested_shape_alias() -> Node:
 	var shape := area.get_node_or_null("enemyTutorialAreaShape")
 	return shape if shape != null else area.get_node_or_null("bossTutorialAreaShape")
 
+func _get_nested_hitbox_shape_alias() -> Node:
+	var area := get_node_or_null("enemyTutorialHitboxArea")
+	if area == null:
+		area = get_node_or_null("bossTutorialHitboxArea")
+	if area == null:
+		return null
+	var shape := area.get_node_or_null("enemyTutorialHitboxAreaShape")
+	return shape if shape != null else area.get_node_or_null("bossTutorialHitboxAreaShape")
+
+func _ensure_player_hitbox() -> void:
+	if enemyTutorialHitboxArea == null:
+		enemyTutorialHitboxArea = Area2D.new()
+		enemyTutorialHitboxArea.name = "bossTutorialHitboxArea" if is_boss else "enemyTutorialHitboxArea"
+		add_child(enemyTutorialHitboxArea)
+	if enemyTutorialHitboxShape == null:
+		enemyTutorialHitboxShape = CollisionShape2D.new()
+		enemyTutorialHitboxShape.name = "bossTutorialHitboxAreaShape" if is_boss else "enemyTutorialHitboxAreaShape"
+		if enemyTutorialShape != null and enemyTutorialShape.shape != null:
+			enemyTutorialHitboxShape.shape = enemyTutorialShape.shape.duplicate(true)
+			enemyTutorialHitboxShape.transform = enemyTutorialShape.transform
+		enemyTutorialHitboxArea.add_child(enemyTutorialHitboxShape)
+	if enemyTutorialArea != null:
+		enemyTutorialHitboxArea.collision_layer = enemyTutorialArea.collision_layer
+		enemyTutorialHitboxArea.collision_mask = 0
+		enemyTutorialHitboxArea.monitoring = false
+		enemyTutorialHitboxArea.monitorable = true
+		enemyTutorialHitboxArea.add_to_group("EnemyHitbox")
+
 func _configure_boss_health_bar() -> void:
 	enemyHealthBar.texture_under = ENEMY_HEALTHBAR_UNDER
 	enemyHealthBar.texture_progress = ENEMY_HEALTHBAR_PROGRESS
@@ -146,6 +199,7 @@ func _physics_process(delta: float) -> void:
 	_process_spell_status(delta)
 	var current_scene := get_tree().current_scene
 	if current_scene != null and str(current_scene.get("tutorial_stage")) == "potion_poison_wait":
+		_cancel_attack_windup()
 		velocity = Vector2.ZERO
 		enemyTutorialSprite.play("idle")
 		move_and_slide()
@@ -157,7 +211,16 @@ func _physics_process(delta: float) -> void:
 		crit_rate = crit_rate_before_potion
 		
 	if attack_timer > 0.0:
-		attack_timer -= delta
+		attack_timer = maxf(0.0, attack_timer - delta)
+	attack_recovery_timer = maxf(0.0, attack_recovery_timer - delta)
+	if attack_windup_timer > 0.0:
+		attack_windup_timer = maxf(0.0, attack_windup_timer - delta)
+		velocity = Vector2.ZERO
+		_face_direction(attack_direction)
+		if attack_windup_timer <= 0.0:
+			_resolve_melee_attack()
+		move_and_slide()
+		return
 	if is_boss and target_player != null and target_player.get("isAlive") != false:
 		_process_boss_minion_summons(delta)
 		
@@ -165,6 +228,10 @@ func _physics_process(delta: float) -> void:
 	if knockback_velocity.length() > 5.0:
 		velocity = knockback_velocity
 		knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 800.0 * delta)
+		move_and_slide()
+		return
+	if attack_recovery_timer > 0.0:
+		velocity = Vector2.ZERO
 		move_and_slide()
 		return
 
@@ -198,7 +265,7 @@ func _on_enemy_tutorial_area_area_exited(area: Area2D) -> void:
 func _on_boss_detection_body_entered(body: Node2D) -> void:
 	if not isAlive or not body.is_in_group("player") or not body is CharacterBody2D:
 		return
-	target_player = body as CharacterBody2D
+	# The broad bossArea only starts minion summons; bossTutorialArea acquires the player.
 	if boss_minions_remaining_this_minute == 0:
 		_begin_boss_minion_cycle()
 
@@ -244,7 +311,7 @@ func _spawn_boss_minion() -> void:
 	minion.global_position = spawn_position
 	minion.remove_from_group("Enemies")
 	minion.set_physics_process(true)
-	for path in ["enemyTutorialShape", "enemyTutorialArea/enemyTutorialAreaShape"]:
+	for path in ["enemyTutorialShape", "enemyTutorialArea/enemyTutorialAreaShape", "enemyTutorialHitboxArea/enemyTutorialHitboxAreaShape"]:
 		var shape := minion.get_node_or_null(path) as CollisionShape2D
 		if shape != null:
 			shape.set_deferred("disabled", false)
@@ -258,10 +325,7 @@ func _spawn_boss_minion() -> void:
 func chaseAndAttack() -> void:
 	var distance_to_player := global_position.distance_to(target_player.global_position)
 	var direction := global_position.direction_to(target_player.global_position)
-	
-	#flip goblin sprite horizontally to face the player
-	if direction.x != 0:
-		enemyTutorialSprite.flip_h = (direction.x < 0)
+	_face_direction(direction)
 	
 	#chase if outside attack reach
 	if distance_to_player > attack_range:
@@ -274,23 +338,56 @@ func chaseAndAttack() -> void:
 		else:
 			enemyTutorialSprite.play("attack")
 	else:
-		#within reach -> Stop moving and attack the player on cooldown
+		# In range: commit to a direction and telegraph before striking.
 		velocity = Vector2.ZERO
-		enemyTutorialSprite.play("attack")
-		
-		if attack_timer <= 0.0:
-			if target_player.has_method("is_melee_attack_blocked") \
-				and target_player.call("is_melee_attack_blocked", self):
-				attack_timer = ATTACK_COOLDOWN
-			elif target_player.has_method("takeMeleeDamage"):
-				var outgoing_damage := attack_damage + (maxi(1, roundi(float(maxAttack) * 0.2)) if attack_potion_time_left > 0.0 else 0)
-				if randf() < crit_rate:
-					outgoing_damage *= 2
-				target_player.call("takeMeleeDamage", outgoing_damage, self)
-				attack_timer = ATTACK_COOLDOWN
-			elif target_player.has_method("takeDamage"):
-				target_player.takeDamage(attack_damage, global_position)
-			attack_timer = ATTACK_COOLDOWN
+		if attack_timer <= 0.0 and attack_windup_timer <= 0.0:
+			_begin_melee_attack(direction)
+		elif enemyTutorialSprite.animation != "attack":
+			enemyTutorialSprite.play("attack")
+
+func _face_direction(direction: Vector2) -> void:
+	if absf(direction.x) > 0.001:
+		enemyTutorialSprite.flip_h = direction.x < 0.0
+
+func _begin_melee_attack(direction: Vector2) -> void:
+	attack_direction = direction.normalized() if direction.length_squared() > 0.001 else Vector2.DOWN
+	_face_direction(attack_direction)
+	attack_windup_timer = ATTACK_WINDUP_DURATION
+	enemyTutorialSprite.play("attack")
+
+func _cancel_attack_windup() -> void:
+	attack_windup_timer = 0.0
+
+func _resolve_melee_attack() -> void:
+	attack_timer = ATTACK_COOLDOWN
+	attack_recovery_timer = ATTACK_RECOVERY_DURATION
+	if target_player == null or not is_instance_valid(target_player) or target_player.get("isAlive") == false:
+		return
+	var offset_to_player := target_player.global_position - global_position
+	var distance_to_player := offset_to_player.length()
+	if distance_to_player > attack_range or distance_to_player <= 0.001:
+		return
+	var attack_alignment := offset_to_player.normalized().dot(attack_direction)
+	var dodge_dot_threshold: float = 0.85 if is_boss else ATTACK_DODGE_DOT_THRESHOLD
+	if attack_alignment < dodge_dot_threshold:
+		return
+	if target_player.has_method("is_melee_attack_blocked") \
+		and target_player.call("is_melee_attack_blocked", self):
+		return
+	var outgoing_damage := _player_relative_melee_damage()
+	if target_player.has_method("takeMeleeDamage"):
+		target_player.call("takeMeleeDamage", outgoing_damage, self)
+	elif target_player.has_method("takeDamage"):
+		target_player.call("takeDamage", outgoing_damage, global_position)
+
+func _player_relative_melee_damage() -> int:
+	var player_max_health: float = 100.0
+	if target_player != null and is_instance_valid(target_player):
+		var configured_max_health: Variant = target_player.get("maxHealth")
+		if configured_max_health != null:
+			player_max_health = maxf(1.0, float(configured_max_health))
+	var damage_ratio: float = 0.20 if is_boss else 0.05
+	return maxi(1, roundi(player_max_health * damage_ratio))
 
 func takeDamage(damage: int, attackerGlobalPos: Vector2, knockback_force: float = KNOCKBACK_FORCE, bypass_shield: bool = false) -> void:
 	if not isAlive:
@@ -320,6 +417,7 @@ func takeDamage(damage: int, attackerGlobalPos: Vector2, knockback_force: float 
 	if health <= 0:
 		die()
 	elif knockback_force > 0.0:
+		_cancel_attack_windup()
 		var knockback_dir := attackerGlobalPos.direction_to(global_position)
 		knockback_velocity = knockback_dir * knockback_force
 
@@ -423,6 +521,7 @@ func _process_spell_status(delta: float) -> void:
 func die() -> void:
 	isAlive = false
 	velocity = Vector2.ZERO
+	_cancel_attack_windup()
 	if is_boss and bossDetectionArea != null:
 		bossDetectionArea.set_deferred("monitoring", false)
 	died.emit()
@@ -435,6 +534,8 @@ func die() -> void:
 	#disable collisions and hide health bar
 	enemyTutorialShape.set_deferred("disabled", true)
 	enemyTutorialAreaShape.set_deferred("disabled", true)
+	if enemyTutorialHitboxShape != null:
+		enemyTutorialHitboxShape.set_deferred("disabled", true)
 	enemyHealthBar.hide()
 	SaveManager.saveGame()
 	
