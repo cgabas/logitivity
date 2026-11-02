@@ -3,8 +3,8 @@ extends Node
 enum inputMode { KEYBOARD, TOUCH }
 const SETTINGS_PATH := "user://input_settings.cfg"
 
-# Keyboard is the safe default; touchscreen controls are enabled by an explicit choice.
-var currentInputMode := inputMode.KEYBOARD
+# Touchscreen is the first-run default; saved player preferences take precedence.
+var currentInputMode := inputMode.TOUCH
 
 # Track active player inventory UI instance globally
 const PLAYER_INVENTORY_SCENE = preload("res://sprite/player_inventory.tscn")
@@ -14,7 +14,7 @@ func _ready() -> void:
 	var settings := ConfigFile.new()
 	if settings.load(SETTINGS_PATH) != OK:
 		return
-	var saved_mode := str(settings.get_value("controls", "input_mode", "keyboard"))
+	var saved_mode := str(settings.get_value("controls", "input_mode", "touchscreen"))
 	currentInputMode = inputMode.TOUCH if saved_mode == "touchscreen" else inputMode.KEYBOARD
 
 func _unhandled_input(event: InputEvent) -> void:

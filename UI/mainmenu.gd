@@ -22,6 +22,7 @@ const BUTTON_DISABLED := preload("res://UI/texture/button_disable.png")
 
 var settingsWindow: Window
 var inputModeOption: OptionButton
+var confirmOverwritePopup: Control
 
 enum PopupType { NONE, CONFIRM_OVERWRITE, NAME_PROMPT }
 
@@ -31,6 +32,7 @@ enum PopupType { NONE, CONFIRM_OVERWRITE, NAME_PROMPT }
 func _ready() -> void:
 	_style_new_game_confirmation()
 	_create_settings_window()
+	_create_overwrite_confirmation_popup()
 	#hide all popups on startup
 	popupControl(false)
 	
@@ -46,12 +48,14 @@ func popupControl(visibility: bool, which: PopupType = PopupType.NONE) -> void:
 	
 	#always hide both windows first to prevent overlap
 	startNewConfirm.visible = false
+	if confirmOverwritePopup != null:
+		confirmOverwritePopup.visible = false
 	namePromptWindow.visible = false
 	
 	if visibility:
 		match which:
 			PopupType.CONFIRM_OVERWRITE:
-				startNewConfirm.popup_centered()
+				confirmOverwritePopup.visible = true
 			PopupType.NAME_PROMPT:
 				namePromptWindow.visible = true
 				playerNameField.clear()
@@ -65,10 +69,75 @@ func startGame() -> void:
 		SaveManager.startNew()
 		popupControl(true, PopupType.NAME_PROMPT)
 
+func _create_overwrite_confirmation_popup() -> void:
+	startNewConfirm.hide()
+	confirmOverwritePopup = Control.new()
+	confirmOverwritePopup.name = "OverwriteConfirmationPopup"
+	confirmOverwritePopup.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	confirmOverwritePopup.mouse_filter = Control.MOUSE_FILTER_STOP
+	confirmOverwritePopup.visible = false
+	canvasLayer.add_child(confirmOverwritePopup)
+
+	var panel := PanelContainer.new()
+	panel.name = "ConfirmationPanel"
+	panel.anchor_left = 0.15
+	panel.anchor_top = 0.20
+	panel.anchor_right = 0.85
+	panel.anchor_bottom = 0.80
+	panel.add_theme_stylebox_override("panel", _texture_style(BUTTON_NORMAL))
+	confirmOverwritePopup.add_child(panel)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 34)
+	margin.add_theme_constant_override("margin_top", 28)
+	margin.add_theme_constant_override("margin_right", 34)
+	margin.add_theme_constant_override("margin_bottom", 28)
+	panel.add_child(margin)
+
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 28)
+	content.alignment = BoxContainer.ALIGNMENT_CENTER
+	margin.add_child(content)
+
+	var message := Label.new()
+	message.text = "Wait! You had a saved game here! Doing so will result in losing all of your hardwork. Are you sure about this? :0"
+	message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	message.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	message.add_theme_font_override("font", UI_FONT)
+	message.add_theme_font_size_override("font_size", 26)
+	message.add_theme_color_override("font_color", Color.WHITE)
+	message.add_theme_color_override("font_outline_color", Color(0.08, 0.035, 0.025))
+	message.add_theme_constant_override("outline_size", 3)
+	content.add_child(message)
+
+	var buttons := HBoxContainer.new()
+	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
+	buttons.add_theme_constant_override("separation", 32)
+	content.add_child(buttons)
+
+	var confirm_button := Button.new()
+	confirm_button.text = "Yup!"
+	confirm_button.custom_minimum_size = Vector2(240.0, 82.0)
+	_style_texture_button(confirm_button)
+	_pad_texture_button(confirm_button, 28.0, 18.0)
+	confirm_button.add_theme_font_size_override("font_size", 24)
+	confirm_button.pressed.connect(_on_start_new_confirm_confirmed)
+	buttons.add_child(confirm_button)
+
+	var cancel_button := Button.new()
+	cancel_button.text = "Never Mind"
+	cancel_button.custom_minimum_size = Vector2(240.0, 82.0)
+	_style_texture_button(cancel_button)
+	_pad_texture_button(cancel_button, 28.0, 18.0)
+	cancel_button.add_theme_font_size_override("font_size", 24)
+	cancel_button.pressed.connect(_on_start_new_confirm_canceled)
+	buttons.add_child(cancel_button)
+
 func _create_settings_window() -> void:
 	settingsWindow = Window.new()
 	settingsWindow.title = "Settings"
-	settingsWindow.size = Vector2i(440, 280)
+	settingsWindow.size = Vector2i(600, 400)
 	settingsWindow.unresizable = true
 	settingsWindow.borderless = true
 	settingsWindow.transparent = true
@@ -91,33 +160,40 @@ func _create_settings_window() -> void:
 	var layout := VBoxContainer.new()
 	settingsWindow.add_child(layout)
 	layout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	layout.offset_left = 28.0
-	layout.offset_top = 24.0
-	layout.offset_right = -28.0
-	layout.offset_bottom = -24.0
-	layout.add_theme_constant_override("separation", 14)
+	layout.offset_left = 36.0
+	layout.offset_top = 30.0
+	layout.offset_right = -36.0
+	layout.offset_bottom = -30.0
+	layout.add_theme_constant_override("separation", 20)
 
 	var heading := Label.new()
 	heading.text = "INPUT SETTINGS"
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	heading.add_theme_font_size_override("font_size", 24)
+	heading.add_theme_font_size_override("font_size", 30)
 	layout.add_child(heading)
 
 	var input_label := Label.new()
 	input_label.text = "Choose how you control the game"
 	input_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	input_label.add_theme_font_size_override("font_size", 22)
 	layout.add_child(input_label)
 
 	inputModeOption = OptionButton.new()
 	inputModeOption.add_item("Keyboard")
 	inputModeOption.add_item("Touchscreen")
-	inputModeOption.custom_minimum_size = Vector2(0.0, 46.0)
+	inputModeOption.custom_minimum_size = Vector2(0.0, 72.0)
 	inputModeOption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_style_texture_button(inputModeOption)
+	_pad_texture_button(inputModeOption, 30.0, 16.0)
+	inputModeOption.add_theme_font_size_override("font_size", 24)
 	inputModeOption.item_selected.connect(_on_input_mode_selected)
 	var options_popup := inputModeOption.get_popup()
 	options_popup.add_theme_stylebox_override("panel", _texture_style(BUTTON_NORMAL))
 	options_popup.add_theme_font_override("font", UI_FONT)
+	options_popup.add_theme_font_size_override("font_size", 24)
+	options_popup.add_theme_constant_override("item_start_padding", 26)
+	options_popup.add_theme_constant_override("item_end_padding", 26)
+	options_popup.add_theme_constant_override("v_separation", 22)
 	options_popup.add_theme_color_override("font_color", Color(0.92, 0.9, 1.0))
 	options_popup.add_theme_color_override("font_hover_color", Color(0.55, 0.92, 1.0))
 	layout.add_child(inputModeOption)
@@ -130,8 +206,10 @@ func _create_settings_window() -> void:
 
 	var done_button := Button.new()
 	done_button.text = "DONE"
-	done_button.custom_minimum_size = Vector2(0.0, 46.0)
+	done_button.custom_minimum_size = Vector2(0.0, 72.0)
 	_style_texture_button(done_button)
+	_pad_texture_button(done_button, 30.0, 16.0)
+	done_button.add_theme_font_size_override("font_size", 24)
 	done_button.pressed.connect(settingsWindow.hide)
 	layout.add_child(done_button)
 
@@ -158,6 +236,15 @@ func _style_texture_button(button: Button) -> void:
 	button.add_theme_stylebox_override("hover", _texture_style(BUTTON_HOVER))
 	button.add_theme_stylebox_override("disabled", _texture_style(BUTTON_DISABLED))
 	button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+
+func _pad_texture_button(button: Button, horizontal: float, vertical: float) -> void:
+	for state in ["normal", "pressed", "hover", "disabled"]:
+		var style := button.get_theme_stylebox(state).duplicate() as StyleBox
+		style.content_margin_left = horizontal
+		style.content_margin_right = horizontal
+		style.content_margin_top = vertical
+		style.content_margin_bottom = vertical
+		button.add_theme_stylebox_override(state, style)
 
 func _texture_style(texture: Texture2D) -> StyleBoxTexture:
 	var style := StyleBoxTexture.new()

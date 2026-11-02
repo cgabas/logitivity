@@ -22,7 +22,7 @@ var defence_label: Label
 #MAKE THIS CASTER FOLLOWS THE CAMERA OR THE PLAYER INSTEAD
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	menu_button.custom_minimum_size = Vector2(76.0, 64.0)
+	menu_button.custom_minimum_size = Vector2(92.0, 76.0)
 	menu_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	menu_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_setup_pause_menu()
@@ -98,7 +98,7 @@ func _setup_pause_menu() -> void:
 	popup.add_item("Return to Main Menu", PAUSE_MAIN_MENU)
 	popup.process_mode = Node.PROCESS_MODE_ALWAYS
 	popup.add_theme_font_override("font", UI_FONT)
-	popup.add_theme_font_size_override("font_size", 18)
+	popup.add_theme_font_size_override("font_size", 22)
 	popup.add_theme_color_override("font_color", Color(0.92, 0.9, 1.0))
 	popup.add_theme_color_override("font_hover_color", Color(0.55, 0.92, 1.0))
 	popup.add_theme_color_override("font_pressed_color", Color.WHITE)
@@ -108,10 +108,10 @@ func _setup_pause_menu() -> void:
 	popup_panel.border_color = Color(0.61, 0.37, 0.26)
 	popup_panel.set_border_width_all(2)
 	popup_panel.set_corner_radius_all(6)
-	popup_panel.content_margin_left = 10.0
-	popup_panel.content_margin_right = 10.0
-	popup_panel.content_margin_top = 8.0
-	popup_panel.content_margin_bottom = 8.0
+	popup_panel.content_margin_left = 22.0
+	popup_panel.content_margin_right = 22.0
+	popup_panel.content_margin_top = 18.0
+	popup_panel.content_margin_bottom = 18.0
 	popup_panel.shadow_color = Color(0.0, 0.0, 0.0, 0.5)
 	popup_panel.shadow_size = 8
 	popup.add_theme_stylebox_override("panel", popup_panel)
@@ -119,7 +119,9 @@ func _setup_pause_menu() -> void:
 	hover_style.bg_color = Color(0.24, 0.19, 0.32, 1.0)
 	hover_style.set_corner_radius_all(4)
 	popup.add_theme_stylebox_override("hover", hover_style)
-	popup.add_theme_constant_override("v_separation", 8)
+	popup.add_theme_constant_override("item_start_padding", 18)
+	popup.add_theme_constant_override("item_end_padding", 18)
+	popup.add_theme_constant_override("v_separation", 18)
 	popup.about_to_popup.connect(_on_pause_menu_opening)
 	popup.popup_hide.connect(_on_pause_menu_closed)
 	popup.id_pressed.connect(_on_pause_menu_item_pressed)
