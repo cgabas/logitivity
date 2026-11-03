@@ -112,7 +112,7 @@ func _setup_pause_menu() -> void:
 
 	popup.process_mode = Node.PROCESS_MODE_ALWAYS
 	popup.add_theme_font_override("font", UI_FONT)
-	popup.add_theme_font_size_override("font_size", 22)
+	popup.add_theme_font_size_override("font_size", 28)
 	popup.add_theme_color_override("font_color", Color(0.92, 0.9, 1.0))
 	popup.add_theme_color_override("font_hover_color", Color(0.55, 0.92, 1.0))
 	popup.add_theme_color_override("font_pressed_color", Color.WHITE)
@@ -122,20 +122,22 @@ func _setup_pause_menu() -> void:
 	popup_panel.border_color = Color(0.61, 0.37, 0.26)
 	popup_panel.set_border_width_all(2)
 	popup_panel.set_corner_radius_all(6)
-	popup_panel.content_margin_left = 22.0
-	popup_panel.content_margin_right = 22.0
-	popup_panel.content_margin_top = 18.0
-	popup_panel.content_margin_bottom = 18.0
+	popup_panel.content_margin_left = 28.0
+	popup_panel.content_margin_right = 28.0
+	popup_panel.content_margin_top = 24.0
+	popup_panel.content_margin_bottom = 24.0
 	popup_panel.shadow_color = Color(0.0, 0.0, 0.0, 0.5)
 	popup_panel.shadow_size = 8
 	popup.add_theme_stylebox_override("panel", popup_panel)
 	var hover_style := StyleBoxFlat.new()
 	hover_style.bg_color = Color(0.24, 0.19, 0.32, 1.0)
+	hover_style.border_color = Color(0.78, 0.49, 0.31, 1.0)
+	hover_style.set_border_width_all(2)
 	hover_style.set_corner_radius_all(4)
 	popup.add_theme_stylebox_override("hover", hover_style)
-	popup.add_theme_constant_override("item_start_padding", 18)
-	popup.add_theme_constant_override("item_end_padding", 18)
-	popup.add_theme_constant_override("v_separation", 18)
+	popup.add_theme_constant_override("item_start_padding", 28)
+	popup.add_theme_constant_override("item_end_padding", 28)
+	popup.add_theme_constant_override("v_separation", 42)
 	popup.about_to_popup.connect(_on_pause_menu_opening)
 	popup.popup_hide.connect(_on_pause_menu_closed)
 	popup.id_pressed.connect(_on_pause_menu_item_pressed)
@@ -149,6 +151,7 @@ func _on_pause_menu_closed() -> void:
 
 func _on_pause_menu_item_pressed(item_id: int) -> void:
 	if item_id == PAUSE_RESUME:
+		get_tree().paused = false
 		menu_button.get_popup().hide()
 	elif item_id == PAUSE_TOGGLE_INPUT:
 		GlobalInputDetection.toggleInputMode()

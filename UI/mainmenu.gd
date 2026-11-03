@@ -137,7 +137,7 @@ func _create_overwrite_confirmation_popup() -> void:
 func _create_settings_window() -> void:
 	settingsWindow = Window.new()
 	settingsWindow.title = "Settings"
-	settingsWindow.size = Vector2i(600, 400)
+	settingsWindow.size = Vector2i(720, 480)
 	settingsWindow.unresizable = true
 	settingsWindow.borderless = true
 	settingsWindow.transparent = true
@@ -160,11 +160,11 @@ func _create_settings_window() -> void:
 	var layout := VBoxContainer.new()
 	settingsWindow.add_child(layout)
 	layout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	layout.offset_left = 36.0
-	layout.offset_top = 30.0
-	layout.offset_right = -36.0
-	layout.offset_bottom = -30.0
-	layout.add_theme_constant_override("separation", 20)
+	layout.offset_left = 42.0
+	layout.offset_top = 36.0
+	layout.offset_right = -42.0
+	layout.offset_bottom = -36.0
+	layout.add_theme_constant_override("separation", 24)
 
 	var heading := Label.new()
 	heading.text = "INPUT SETTINGS"
@@ -185,15 +185,15 @@ func _create_settings_window() -> void:
 	inputModeOption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_style_texture_button(inputModeOption)
 	_pad_texture_button(inputModeOption, 30.0, 16.0)
-	inputModeOption.add_theme_font_size_override("font_size", 24)
+	inputModeOption.add_theme_font_size_override("font_size", 28)
 	inputModeOption.item_selected.connect(_on_input_mode_selected)
 	var options_popup := inputModeOption.get_popup()
 	options_popup.add_theme_stylebox_override("panel", _texture_style(BUTTON_NORMAL))
 	options_popup.add_theme_font_override("font", UI_FONT)
-	options_popup.add_theme_font_size_override("font_size", 24)
-	options_popup.add_theme_constant_override("item_start_padding", 26)
-	options_popup.add_theme_constant_override("item_end_padding", 26)
-	options_popup.add_theme_constant_override("v_separation", 22)
+	options_popup.add_theme_font_size_override("font_size", 30)
+	options_popup.add_theme_constant_override("item_start_padding", 32)
+	options_popup.add_theme_constant_override("item_end_padding", 32)
+	options_popup.add_theme_constant_override("v_separation", 38)
 	options_popup.add_theme_color_override("font_color", Color(0.92, 0.9, 1.0))
 	options_popup.add_theme_color_override("font_hover_color", Color(0.55, 0.92, 1.0))
 	layout.add_child(inputModeOption)
@@ -210,7 +210,7 @@ func _create_settings_window() -> void:
 	_style_texture_button(done_button)
 	_pad_texture_button(done_button, 30.0, 16.0)
 	done_button.add_theme_font_size_override("font_size", 24)
-	done_button.pressed.connect(settingsWindow.hide)
+	done_button.pressed.connect(_close_settings_window)
 	layout.add_child(done_button)
 
 func _style_new_game_confirmation() -> void:
@@ -275,6 +275,10 @@ func _on_input_mode_selected(index: int) -> void:
 
 func _on_settings_close_requested() -> void:
 	settingsWindow.hide()
+
+func _close_settings_window() -> void:
+	if is_instance_valid(settingsWindow):
+		settingsWindow.hide()
 
 func _on_exit_pressed() -> void:
 	get_tree().quit()
